@@ -1,0 +1,94 @@
+{
+  "create": {
+    "1": {
+      "multiplier": "NONE",
+      "time": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "p",
+          "chance": 90
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      },
+      "step_on_err": 0,
+      "dead_payload_bit": 5,
+      "storage": {
+        "storage_strain": "0",
+        "storage_strain_kB": 0,
+        "ram_strain_kB": 10
+      }
+    },
+    "2": {
+      "multiplier": "CREATE_SECRET",
+      "time": 500,
+      "step_on_err": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "t",
+          "chance": 90
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      },
+      "dead_payload_bit": 0,
+      "storage": {
+        "storage_strain": "0",
+        "storage_strain_kB": 0,
+        "ram_strain_kB": 100
+      }
+    },
+    "3": {
+      "multiplier": "NONE",
+      "time": 0,
+      "step_on_err": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 100
+        }
+      },
+      "dead_payload_bit": 200,
+      "storage": {
+        "storage_strain": "WRITE_STORAGE",
+        "storage_strain_kB": 100,
+        "ram_strain_kB": 50
+      }
+    },
+    "4": {
+      "multiplier": "NONE",
+      "time": 0,
+      "step_on_err": 0,
+      "step_on_succ": {},
+      "dead_payload_bit": 0,
+      "storage": {
+        "storage_strain": "WRITE_STORAGE",
+        "storage_strain_kB": 100,
+        "ram_strain_kB": 50
+      }
+    }
+  },
+  "expire": {
+    "1": {
+      "multiplier": "NONE",
+      "time": 0,
+      "step_on_succ": {},
+      "step_on_err": 0,
+      "dead_payload_bit": 5,
+      "storage": {
+        "storage_strain": "0",
+        "storage_strain_kB": 0,
+        "ram_strain_kB": 10
+      }
+    }
+  }
+}
