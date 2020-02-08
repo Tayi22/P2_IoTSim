@@ -1,14 +1,14 @@
 {
-  "create": {
+  "create_I": {
     "1": {
-      "multiplier": "GEN_CSR",
+      "multiplier": "NONE",
       "name": "Generate CSR Request",
-      "time": 10,
+      "time": 310,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
           "sendTo": "p",
-          "chance": 98
+          "chance": 99
         },
         "Option_2": {
           "nextStep": 0,
@@ -17,11 +17,75 @@
         }
       },
       "step_on_err": 0,
-      "dead_payload_bit": 2048,
+      "dead_payload_bit": 256,
       "storage": {
         "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 10
+        "storage_strain_kB": 28,
+        "ram_strain_kB": 28
+      }
+    },
+    "2": {
+      "multiplier": "CREATE_SECRET",
+      "name": "Sign Public Key",
+      "time": 120,
+      "step_on_err": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "s",
+          "chance": 98
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      },
+      "dead_payload_bit": 2048,
+      "storage": {
+        "storage_strain": "WRITE_STORAGE",
+        "storage_strain_kB": 3000,
+        "ram_strain_kB": 5
+      }
+    },
+    "3": {
+      "multiplier": "NONE",
+      "name": "Save Certificate",
+      "time": 10,
+      "step_on_err": 0,
+      "step_on_succ": {},
+      "dead_payload_bit": 4000,
+      "storage": {
+        "storage_strain": "WRITE_STORAGE",
+        "storage_strain_kB": 2.048,
+        "ram_strain_kB": 5
+      }
+    }
+  },
+  "create_L": {
+    "1": {
+      "multiplier": "NONE",
+      "name": "Generate CSR Request",
+      "condition": "test",
+      "time": 310,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "p",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      },
+      "step_on_err": 0,
+      "dead_payload_bit": 256,
+      "storage": {
+        "storage_strain": "0",
+        "storage_strain_kB": 28,
+        "ram_strain_kB": 28
       }
     },
     "2": {
