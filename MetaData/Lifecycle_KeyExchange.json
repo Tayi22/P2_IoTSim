@@ -27,7 +27,7 @@
     "2": {
       "multiplier": "CREATE_SECRET",
       "name": "Sign Public Key",
-      "time": 120,
+      "time": 5000,
       "step_on_err": 0,
       "step_on_succ": {
         "Option_1": {

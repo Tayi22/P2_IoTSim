@@ -85,8 +85,31 @@ struct JsonRead{
 		return jo[c][s]["multiplier"];
 	}
 
+	int getCondition(std::string c, std::string s, std::string &con){
+		try{
+			con = jo[c][s]["condition"];
+		} catch (char const* msg){
+			con = "";
+			return 1;
+		}
+		return 0;
+	}
+
 	float getTime(std::string c, std::string s, float multiplier = 1.0f){
 		return (float)(jo[c][s]["time"]) * multiplier;
+	}
+
+	void getNextStepCondition(std::string c, std::string s, int &retNextStep, std::string &retSendTo, bool con){
+		json options = jo[c][s]["step_on_succ"];
+		int index;
+		if (con){
+			index = 0;
+		} else {
+			index = 1;
+		}
+		retNextStep = options[index]["nextStep"];
+		retSendTo = options[index]["sendTo"];
+		return;
 	}
 
 	void getNextStep(std::string c, std::string s, int &retNextStep, std::string &retSendTo){

@@ -30,7 +30,7 @@ const int identitySize = 5;
 int id_num[identitySize] = {0};
 int maxMs = 1000;
 
-std::string jsonFile = "Lifecycle_LL.json";
+std::string jsonFile = "Lifecycle_KeyExchange.json";
 
 
 
