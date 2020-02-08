@@ -24,7 +24,7 @@ public:
 	EventSerialize(string fileName){
 		if (!outputStream.is_open()){
 			outputStream.open(folder + fileName);
-			outputStream << "Timestamp;NodeId;NodeType;EventType;Event;CompletionTime;Running_WT;Running_NT;Storage;MAX_Storage;RAM;MAX_RAM\n";
+			outputStream << "Timestamp;NodeId;NodeType;EventType;Event;CompletionTime;CPU;Running_NT;Storage;MAX_Storage;RAM;MAX_RAM\n";
 		}
 	}
 
@@ -40,9 +40,9 @@ public:
 	}
 
 
-	void write(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime = 0, int running_WT = 0, int running_NT = 0, int storage = 0, int ram = 0, int maxStorage = 0, int maxRam = 0){
+	void write(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime = 0, float cpu = 0.f, int running_NT = 0, int storage = 0, int ram = 0, int maxStorage = 0, int maxRam = 0){
 		m.lock();
-		outputStream << timestamp << ";" << nodeId << ";" << nodeType << ";" << eventType << ";" << event << ";" << completionTime << ";" << running_WT << ";" << running_NT << ";" << storage << ";" << maxStorage << ";" << ram << ";" << maxRam << '\n';
+		outputStream << timestamp << ";" << nodeId << ";" << nodeType << ";" << eventType << ";" << event << ";" << completionTime << ";" << cpu << ";" << running_NT << ";" << storage << ";" << maxStorage << ";" << ram << ";" << maxRam << '\n';
 		m.unlock();
 	}
 

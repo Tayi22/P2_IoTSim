@@ -17,11 +17,12 @@ private:
 	float passed_time;
 	float max_time;
 	float time_alive;
+	float time_alive_save_time;
 	int retry_alive;
 	int max_retries;
 	int retries;
 
-	system_clock::time_point last_update;
+	system_clock::time_point start_time;
 
 	Payload pl;
 
@@ -41,13 +42,32 @@ public:
 			{
 				passed_time = 0.f;
 				retries = 0;
-				last_update = system_clock::now();
+				start_time = system_clock::now();
 				time_alive = 0.f;
 				retry_alive = 0;
+				time_alive_save_time = 0;
 			}
 
 
 	int check(){
+		passed_time = duration_cast<milliseconds>(system_clock::now() - start_time).count();
+		if (passed_time < 1) return 0;
+		time_alive = time_alive_save_time + passed_time;
+		if (passed_time > max_time){
+			retries++;
+			retry_alive++;
+			start_time = system_clock::now();
+			if (retries > max_retries){
+				retries = 0;
+				return 2;
+			}
+			time_alive_save_time += passed_time;
+			return 1;
+		}
+		return 0;
+
+
+/*
 		system_clock::time_point cur = system_clock::now();
 		float time_between_checks = duration_cast<milliseconds>(cur - last_update).count();
 		if (time_between_checks < 1) return 0;
@@ -68,6 +88,7 @@ public:
 			return 1;
 		}
 		return 0;
+		*/
 
 	}
 
@@ -85,6 +106,10 @@ public:
 
 	float getTimeAlive() const {
 		return time_alive;
+	}
+
+	float getTimeSuccess() const {
+		return passed_time;
 	}
 
 	float getAvGTimeAlive() const {

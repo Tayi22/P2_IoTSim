@@ -40,16 +40,21 @@ public:
 
 	float checkTask(){
 		if (timeToComplete == 0) return 0;
-		system_clock::time_point checkNow = system_clock::now();
-		double passedTime = duration_cast<milliseconds>(checkNow - lastUpdate).count();
-		if (passedTime < 1) return -1.f;
+		takenTime = duration_cast<milliseconds>(system_clock::now() - lastUpdate).count();
+		if (takenTime < 1) return -1.f;
+		if (timeToComplete > takenTime) return -1.f;
+		return takenTime;
+
+		/*
 		lastUpdate = checkNow;
 		timeToComplete -= passedTime;
 		takenTime += passedTime;
+
 		if (timeToComplete <= 0.f){
 			return takenTime;
 		}
 		return -1.f;
+		*/
 	}
 
 	int getRamNeeded() const {

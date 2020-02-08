@@ -190,25 +190,31 @@ private:
 	int checkNTaskList(int max_sim_thread){
 		int sim_thread = 1;
 		int ram_need = 0;
+		float cpu = nTaskList.size() / (float)max_sim_thread;
+		if (cpu > 1.f) cpu = 1.f;
 		float nTaskTime;
 		auto it = nTaskList.begin();
 
+
 		while (it != nTaskList.end()){
-			if (sim_thread > max_sim_thread) return ram_need;
-			sim_thread++;
-			ram_need += it->getRamNeeded();
-			nTaskTime = it->checkTask();
-			if (nTaskTime >= 0){
-				Payload pl = it->getPl();
-				if(it->isSelfSend()){
-					this->calcStep(pl);
-				} else {
-					this->remote_send(pl);
-				}
-				saveEvent(getUnix(), this->getId(), this->nodeType, NTASK_FINISH, "NTask Finished working", (int)nTaskTime, 0, nTaskList.size(), currStorage, maxStorage, ram_need, maxRam);
-				nTaskList.erase(it++);
+			if (sim_thread > max_sim_thread){
+				ram_need += it->getRamNeeded();
 			} else {
-				it++;
+				sim_thread++;
+				ram_need += it->getRamNeeded();
+				nTaskTime = it->checkTask();
+				if (nTaskTime >= 0){
+					Payload pl = it->getPl();
+					if(it->isSelfSend()){
+						this->calcStep(pl);
+					} else {
+						this->remote_send(pl);
+					}
+					saveEvent(getUnix(), this->getId(), this->nodeType, NTASK_FINISH, "NTask Finished working", (int)nTaskTime, 0, nTaskList.size(), currStorage, maxStorage, ram_need, maxRam);
+					nTaskList.erase(it++);
+				} else {
+					it++;
+				}
 			}
 		}
 		return ram_need;
@@ -282,6 +288,15 @@ private:
 				}
 			}
 		}
+	}
+
+	bool checkCondition(std::string con){
+		if (con.compare("test")){
+			return true;
+		}
+
+		NS_LOG_UNCOND("Condition " + con + " not found");
+		throw "Condition not found";
 	}
 
 	std::string getNodeTypeString(){
@@ -383,7 +398,7 @@ public:
 		int payloadSize = 0;
 		try{
 			payloadSize = jsonRead->getDeadPayloadSize(pl.cycle_id, pl.step_num);
-			payloadSize /= 8;
+			// payloadSize /= 8;
 		} catch (char const* msg){
 			payloadSize = 1;
 		}
@@ -437,6 +452,22 @@ public:
 		}
 		std::string sendTo;
 		int nextStep;
+
+		std::string condition;
+		int withCon = jsonRead->getCondition(pl.cycle_id, pl.step_num, condition);
+
+		try{
+			if (withCon == 0){
+				jsonRead->getNextStepCondition(pl.cycle_id, pl.step_num, nextStep, sendTo, checkCondition(condition));
+			} else {
+				jsonRead->getNextStep(pl.cycle_id, pl.step_num, nextStep, sendTo);
+			}
+		} catch (char const* msg){
+
+		}
+
+
+
 		try {
 			jsonRead->getNextStep(pl.cycle_id, pl.step_num, nextStep, sendTo);
 		} catch (char const* msg){
@@ -523,7 +554,7 @@ public:
 		int maxTries = metaData.getData("MAX_TRIES");
 		float retry_time = intRand(wt_retry_time, wt_retry_time*2);
 		m->try_lock();
-		if (cycle_id.compare("create") == 0){
+		if (cycle_id.find("create") != std::string::npos){
 			if (!wTask_create){
 				wTask_create.reset(new WTask(retry_time, maxTries, pl, affectedNodeIndex));
 				// wTask_create = new WTask(retry_time, maxTries, pl, affectedNodeIndex);
@@ -561,7 +592,7 @@ public:
 	}
 
 	void finishWTask(std::string cycle){
-		if (cycle.compare("create") == 0){
+		if (cycle.find("create") != std::string::npos){
 			m->try_lock();
 			if (wTask_create){
 				secret->setSecret(true);
