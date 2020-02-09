@@ -40,11 +40,10 @@
     },
     "3": {
       "name": "Create Certificate",
-      "time": 42,
-      "step_on_err": 0,
-      "dead_payload": 1000,
+      "time": 120,
+      "dead_payload": 500,
       "storage_strain": 500,
-      "ram_strain": 42,
+      "ram_strain": 130,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 4,
@@ -54,9 +53,50 @@
       }
     },
     "4": {
+      "name": "Send To R",
+      "time": 0,
+      "dead_payload": 500,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "p",
+          "chance": 100
+        }
+      }
+    },
+    "5": {
+      "name": "Save and Send Back",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": 500,
+      "ram_strain": 144,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 100
+        }
+      }
+    },
+    "6": {
+      "name": "Send Back to L",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {
+        "Option_2": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 100
+        }
+      }
+    },
+    "7": {
       "name": "Save Certificate",
-      "time": 5,
-      "step_on_err": 0,
+      "time": 10,
       "dead_payload": 0,
       "storage_strain": 500,
       "ram_strain": 144,
