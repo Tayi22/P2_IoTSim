@@ -145,14 +145,10 @@ struct JsonRead{
 		return jo[c][s]["dead_payload"];
 	}
 
-	std::string getStorageStrainString(std::string c, std::string s){
-		json storage = jo[c][s]["storage"];
-		return storage["storage_strain"];
-	}
 
 	void getStorageData(std::string c, std::string s, int &needStorage, int &needRam){
 		jm.lock();
-		json storage = jo[c][s]["storage"];
+		json storage = jo[c][s];
 		needStorage = storage["storage_strain"];
 		needRam = storage["ram_strain"];
 		jm.unlock();

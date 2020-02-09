@@ -22,7 +22,7 @@ private:
 			std::chrono::time_point<system_clock> expiresAt;
 			int lastExpired = 0;
 			// Need to wait at least 10 Seconds until you can create a new one
-			const int waitForCreate = 10000;
+			const int waitForCreate = 10;
 
 			bool hasSecret() const {
 				return secretBool;
@@ -51,7 +51,7 @@ private:
 
 			bool canCreate(int u){
 				if (lastExpired == 0) return true;
-				if (u - lastExpired > waitForCreate) return true;
+				if ((lastExpired - u) > waitForCreate) return true;
 				return false;
 
  			}
@@ -397,8 +397,8 @@ public:
 					NS_LOG_INFO(toString() + " Cannot accept Packages if not Create Cycle is on the way");
 					return;
 				} else {
-					if (!(wTask_create->getPl().checkStarter(pl))){
-						NS_LOG_INFO(toString() + " Cannot comupte Package without Secret");
+					if (pl.i_source_id.compare(wTask_create->getPl().i_source_id) != 0){
+						NS_LOG_UNCOND("Cannot Compute this Create Package without a Secret");
 						return;
 					}
 				}
@@ -448,6 +448,7 @@ public:
 			if (currStorage < 0) currStorage = 0;
 			if (currStorage >= maxStorage){
 				saveEvent(getUnix(), this->getId(), this->nodeType, ERROR, "Storage is Full and cannot compute Step");
+				NS_LOG_UNCOND("Storage Full " + std::to_string(currStorage) + " " + std::to_string(maxStorage));
 				return;
 			} else {
 				// Add some more Time to the StorageMultiplier cause Storage needs more time the more Data is stored.
@@ -738,8 +739,6 @@ public:
 		}
 	}
 
-	void
-
 	void addNTask(NTask nt){
 		this->nTaskList.push_back(nt);
 	}
@@ -761,6 +760,7 @@ public:
 	}
 
 	void revokeNode(){
+		NS_LOG_UNCOND(toString() + "got Revoked");
 		this->getSecret()->setRevoked(true);
 	}
 

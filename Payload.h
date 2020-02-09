@@ -65,7 +65,7 @@ public:
 	}
 
 	std::string to_string(){
-		return "Packet: leaf_source_id: " + leaf_source_id + " i_source_id: " + i_source_id + "wt_id: " + wt_id + " cycle_id: " + cycle_id + " step_num: " + step_num + " affectedNodeIndex: " + affectedNodeIndex + "revoked: " + revoked;
+		return "Packet: leaf_source_id:" + leaf_source_id + ", i_source_id:" + i_source_id + ", wt_id: " + wt_id + ", cycle_id:" + cycle_id + ", step_num: " + step_num + ", affectedNodeIndex:" + affectedNodeIndex + ", revoked:" + revoked;
 	}
 
 	std::string to_string_Payload_size(){
