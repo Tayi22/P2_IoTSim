@@ -20,6 +20,9 @@ private:
 			bool secretBool;
 			bool revoked = false;
 			std::chrono::time_point<system_clock> expiresAt;
+			int lastExpired = 0;
+			// Need to wait at least 10 Seconds until you can create a new one
+			const int waitForCreate = 10000;
 
 			bool hasSecret() const {
 				return secretBool;
@@ -46,6 +49,13 @@ private:
 				this->revoked = r;
 			}
 
+			bool canCreate(int u){
+				if (lastExpired == 0) return true;
+				if (u - lastExpired > waitForCreate) return true;
+				return false;
+
+ 			}
+
 			std::string validStringAndExpireIfRevoked(){
 				if (revoked){
 					expiresAt = std::chrono::system_clock::now();
@@ -53,6 +63,12 @@ private:
 				}
 				if (!secretBool) return "No Secret";
 				return "Valid";
+			}
+
+			void expireMe(int u){
+				secretBool = false;
+				revoked = false;
+				lastExpired = u;
 			}
 
 			void setExpire(int seconds){
@@ -171,7 +187,13 @@ private:
 		if (!secret->hasSecret()){
 			if (!wTask_create){
 				m->try_lock();
-				this->startStep("create", index);
+				if (secret->canCreate(getUnix())){
+					if (nodeType == L_NODE){
+						this->startStep("create_L", index);
+					} else if (nodeType == I_NODE){
+						this->startStep("create_I", index);
+					}
+				}
 				m->unlock();
 			}
 		}
@@ -181,7 +203,7 @@ private:
 		if (secret->checkExpire()){
 			if (!wTask_expire_revoke){
 				m->try_lock();
-				this->startStep("expire_revoke", index);
+				this->startStep("expire", index);
 				m->unlock();
 			}
 		}
@@ -194,11 +216,10 @@ private:
 		if (cpu > 1.f) cpu = 1.f;
 		float nTaskTime;
 		auto it = nTaskList.begin();
-
-
 		while (it != nTaskList.end()){
 			if (sim_thread > max_sim_thread){
 				ram_need += it->getRamNeeded();
+				it++;
 			} else {
 				sim_thread++;
 				ram_need += it->getRamNeeded();
@@ -291,7 +312,7 @@ private:
 	}
 
 	bool checkCondition(std::string con){
-		if (con.compare("test")){
+		if (con.compare("test") == 0){
 			return true;
 		}
 
@@ -367,14 +388,19 @@ public:
 	void calcStep(Payload pl){
 		if (!running) return;
 
-		if (!secret->hasSecret()){
-			if (!wTask_create){
-				NS_LOG_INFO(toString() + " Cannot accept Packages if not Create Cycle is on the way");
-				return;
-			} else {
-				if (!(wTask_create->getPl().checkStarter(pl))){
-					NS_LOG_INFO(toString() + " Cannot comupte Package without Secret");
+		NS_LOG_INFO(toString() + " working on: " + pl.to_string());
+
+		if (nodeType == I_NODE){
+
+			if (!secret->hasSecret()){
+				if (!wTask_create){
+					NS_LOG_INFO(toString() + " Cannot accept Packages if not Create Cycle is on the way");
 					return;
+				} else {
+					if (!(wTask_create->getPl().checkStarter(pl))){
+						NS_LOG_INFO(toString() + " Cannot comupte Package without Secret");
+						return;
+					}
 				}
 			}
 		}
@@ -385,14 +411,13 @@ public:
 			} else {
 				pl.setRevoked("0");
 			}
-		} else {
-
 		}
 
 		float timeNeeded = 0;
 		int ramNeeded = 0;
+		int needStorage;
 		float storageMultiplier = 1.f;
-		std::string storageMultiplierString;
+		// std::string storageMultiplierString;
 		bool selfSend = false;
 
 		int payloadSize = 0;
@@ -406,20 +431,16 @@ public:
 		if (payloadSize < 1) payloadSize = 1;
 		std::string deadPayload(payloadSize, '1');
 
-		int needStorage;
+
+
 		try {
-			storageMultiplierString = jsonRead->getStorageStrainString(pl.cycle_id, pl.step_num);
 			jsonRead->getStorageData(pl.cycle_id, pl.step_num, needStorage, ramNeeded);
 		} catch (char const* msg){
 			std::string errString(msg);
-			errString = "Could not extract StorageString in cycleNum/step (getStorageStrainString/getStorageData): " + pl.cycle_id + "/" + pl.step_num + " ErrorString: " + errString;
+			errString = "Could not extract Storage Data in cycleNum/step (getStorageData): " + pl.cycle_id + "/" + pl.step_num + " ErrorString: " + errString;
 			NS_LOG_UNCOND(errString);
 			saveEvent(getUnix(), this->getId(), this->nodeType, ERROR, getJsonErrString(msg, pl.cycle_id, pl.step_num));
 			return;
-		}
-
-		if (storageMultiplierString.compare("0") != 0){
-			storageMultiplier = metaData.getData(storageMultiplierString);
 		}
 
 		if (needStorage != 0){
@@ -430,21 +451,13 @@ public:
 				return;
 			} else {
 				// Add some more Time to the StorageMultiplier cause Storage needs more time the more Data is stored.
-				if (currStorage > 0) storageMultiplier *= ((currStorage / maxStorage) + 1);
+				storageMultiplier = ((currStorage / maxStorage) + 1);
 			}
 		}
 
 		try {
-			std::string timeMultiplierStr = jsonRead->getMultiplierString(pl.cycle_id, pl.step_num);
-			float timeMult = 1.f;
-			if (timeMultiplierStr.compare("NONE") != 0){
-				timeMult = metaData.getData(timeMultiplierStr);
-			}
-
 			timeNeeded = this->jsonRead->getTime(pl.cycle_id, pl.step_num);
 			timeNeeded *= storageMultiplier;
-			timeNeeded *= timeMult;
-
 		} catch (char const* msg){
 			saveEvent(getUnix(), this->getId(), this->nodeType, ERROR, getJsonErrString(msg, pl.cycle_id, pl.step_num));
 			NS_LOG_UNCOND(id + " Could not extract Time Multipliers: cycle/step: " + pl.cycle_id + "/" + pl.step_num);
@@ -463,14 +476,7 @@ public:
 				jsonRead->getNextStep(pl.cycle_id, pl.step_num, nextStep, sendTo);
 			}
 		} catch (char const* msg){
-
-		}
-
-
-
-		try {
-			jsonRead->getNextStep(pl.cycle_id, pl.step_num, nextStep, sendTo);
-		} catch (char const* msg){
+			NS_LOG_UNCOND("There was an error getting the Condition next Step");
 			saveEvent(getUnix(), this->getId(), this->nodeType, ERROR, getJsonErrString(msg, pl.cycle_id, pl.step_num));
 			return;
 		}
@@ -510,6 +516,7 @@ public:
 			if (pl.cycle_id.compare("expire_revoke") == 0){
 				// NS_LOG_UNCOND(toString() + " working on " + pl.to_string());
 			}
+			NS_LOG_INFO(toString() + " pushing NTask: " + nt.toString());
 			this->nTaskList.push_back(nt);
 		}
 
@@ -562,7 +569,7 @@ public:
 				calcStep(pl);
 				saveEvent(getUnix(), getId(), getNodeType(), INFO, "WaitTask_Create Created");
 			}
-		} else if (cycle_id.compare("validate") == 0){
+		} else if (cycle_id.find("validate") != std::string::npos){
 			if (!wTask_validate){
 				wTask_validate.reset(new WTask(retry_time, maxTries, pl, affectedNodeIndex));
 				NS_LOG_UNCOND(toString() + " starts cycle validate");
@@ -617,19 +624,18 @@ public:
 				// allNodes->at(wTask_expire_revoke->getAffectedNodeIndex())->getSecret().setSecret(false);
 				saveEvent(getUnix(), this->getId(), nodeType, EXPIRED, "Affected Node EXPIRED/REVOKED", wTask_expire_revoke->getTimeAlive());
 				NS_LOG_UNCOND(toString() + " revoked/expired Secret");
-				allNodes->at(affectedNodeIndex)->getSecret()->setSecret(false);
-				allNodes->at(affectedNodeIndex)->getSecret()->setRevoked(false);
+				allNodes->at(affectedNodeIndex)->getSecret()->expireMe(getUnix());
 				wTask_expire_revoke.reset();
 			}
 			m->unlock();
 			return;
 		}
-		if (cycle.compare("validate") == 0){
+		if (cycle.find("validate") != std::string::npos){
 			m->try_lock();
 			if (wTask_validate){
 				int affectedNodeIndex = wTask_validate->getAffectedNodeIndex();
 				std::string val = allNodes->at(affectedNodeIndex)->getSecret()->validStringAndExpireIfRevoked();
-				std::string msg = toString() + " Validated Node:  " + allNodes->at(affectedNodeIndex)->toString() + " " + val;
+				std::string msg = toString() + " Validated Node:  " + cycle + " " + allNodes->at(affectedNodeIndex)->toString() + " " + val;
 				wTask_validate->getAvGTimeAlive() >= maxMs ? ms_over_count++ : ms_under_count++;
 				// allNodes->at(wTask_expire_revoke->getAffectedNodeIndex())->getSecret().setSecret(false);
 				saveEvent(getUnix(), this->getId(), nodeType, VALIDATED, msg, wTask_validate->getTimeAlive());
@@ -724,13 +730,15 @@ public:
 		}
 	}
 
-	void validate(int affected_node_index){
+	void validate(int affected_node_index, std::string valCycle){
 		if (secret->hasSecret()){
 			if (!wTask_validate){
-				this->startStep("validate", affected_node_index);
+				this->startStep(valCycle, affected_node_index);
 			}
 		}
 	}
+
+	void
 
 	void addNTask(NTask nt){
 		this->nTaskList.push_back(nt);
