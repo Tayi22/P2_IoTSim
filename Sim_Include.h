@@ -88,27 +88,26 @@ struct JsonRead{
 	int getCondition(std::string c, std::string s, std::string &con){
 		try{
 			con = jo[c][s]["condition"];
-		} catch (char const* msg){
+		} catch (...){
 			con = "";
 			return 1;
 		}
 		return 0;
 	}
 
-	float getTime(std::string c, std::string s, float multiplier = 1.0f){
-		return (float)(jo[c][s]["time"]) * multiplier;
+	float getTime(std::string c, std::string s){
+		return (float)(jo[c][s]["time"]);
 	}
 
 	void getNextStepCondition(std::string c, std::string s, int &retNextStep, std::string &retSendTo, bool con){
 		json options = jo[c][s]["step_on_succ"];
-		int index;
-		if (con){
-			index = 0;
-		} else {
-			index = 1;
-		}
-		retNextStep = options[index]["nextStep"];
-		retSendTo = options[index]["sendTo"];
+
+		auto it = options.begin();
+		if (!con) it++;
+		json option = *it;
+
+		retNextStep = option["nextStep"];
+		retSendTo = option["sendTo"];
 		return;
 	}
 
@@ -143,7 +142,7 @@ struct JsonRead{
 	}
 
 	int getDeadPayloadSize(std::string c, std::string s){
-		return jo[c][s]["dead_payload_bit"];
+		return jo[c][s]["dead_payload"];
 	}
 
 	std::string getStorageStrainString(std::string c, std::string s){
@@ -154,8 +153,8 @@ struct JsonRead{
 	void getStorageData(std::string c, std::string s, int &needStorage, int &needRam){
 		jm.lock();
 		json storage = jo[c][s]["storage"];
-		needStorage = storage["storage_strain_kB"];
-		needRam = storage["ram_strain_kB"];
+		needStorage = storage["storage_strain"];
+		needRam = storage["ram_strain"];
 		jm.unlock();
 	}
 

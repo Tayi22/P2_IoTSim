@@ -68,6 +68,10 @@ public:
 	bool isSelfSend() const {
 		return selfSend;
 	}
+
+	std::string toString(){
+		return "RamNeed: " + std::to_string(ramNeeded) + "Time to complete: " + std::to_string(timeToComplete);
+	}
 };
 
 

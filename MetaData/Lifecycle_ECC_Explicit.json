@@ -135,7 +135,7 @@
         "Option_1": {
           "nextStep": 2,
           "sendTo": "t",
-          "chance": 30
+          "chance": 1
         },
         "Option_2": {
           "nextStep": 7,

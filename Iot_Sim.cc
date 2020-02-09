@@ -21,16 +21,16 @@ using namespace ns3;
 using namespace std;
 
 const int RNN = 1;
-int INN = 1;
-int LNPIN = 2;
-int runTime = 120;
+int INN = 2;
+int LNPIN = 3;
+int runTime = 300;
 int endSimInterval = 10;
 int NN;
 const int identitySize = 5;
 int id_num[identitySize] = {0};
 int maxMs = 1000;
 
-std::string jsonFile = "Lifecycle_KeyExchange.json";
+std::string jsonFile = "Lifecycle_ECC_Explicit.json";
 
 
 
@@ -59,11 +59,10 @@ std::string getId(){
 
 
 
-int
-main (int argc, char *argv[])
+int main (int argc, char *argv[])
 {
 	std::string phyMode("DsssRate1Mbps");
-	double rss = -80;
+	double rss = -70;
 	std::vector<shared_ptr<ANode>> allNodes;
 	std::vector<int> l_node_indicies;
 
@@ -186,7 +185,13 @@ main (int argc, char *argv[])
 				l1 = l_node_indicies.at(n1);
 				l2 = l_node_indicies.at(n2);
 				Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2);
-				NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate " + allNodes.at(l2)->toString());
+				if (i % 2 == 0){
+					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_ECDH");
+					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_ECDH " + allNodes.at(l2)->toString());
+				} else {
+					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_OCSP");
+					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_OCSP " + allNodes.at(l2)->toString());
+				}
 			}
 		}
 
