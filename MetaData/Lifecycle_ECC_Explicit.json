@@ -1,76 +1,33 @@
 {
-  "create_I": {
-    "1": {
-      "multiplier": "NONE",
-      "name": "Generate CSR Request",
-      "time": 310,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 2,
-          "sendTo": "p",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 256,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 28,
-        "ram_strain_kB": 28
-      }
-    },
-    "2": {
-      "multiplier": "CREATE_SECRET",
-      "name": "Sign Public Key",
-      "time": 120,
-      "step_on_err": 0,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 3,
-          "sendTo": "s",
-          "chance": 98
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "dead_payload_bit": 2048,
-      "storage": {
-        "storage_strain": "WRITE_STORAGE",
-        "storage_strain_kB": 3000,
-        "ram_strain_kB": 5
-      }
-    },
-    "3": {
-      "multiplier": "NONE",
-      "name": "Save Certificate",
-      "time": 10,
-      "step_on_err": 0,
-      "step_on_succ": {},
-      "dead_payload_bit": 4000,
-      "storage": {
-        "storage_strain": "WRITE_STORAGE",
-        "storage_strain_kB": 2.048,
-        "ram_strain_kB": 5
-      }
-    }
-  },
   "create_L": {
     "1": {
-      "multiplier": "NONE",
-      "name": "Generate CSR Request",
-      "condition": "test",
-      "time": 310,
+      "name": "Gen Keys",
+      "time": 240,
+      "dead_payload_bit": 0,
+      "storage_strain": 0,
+      "ram_strain": 2648,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
+          "sendTo": "t",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Gen CSR",
+      "time": 248,
+      "dead_payload_bit": 497,
+      "storage_strain": 0,
+      "ram_strain": 260,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
           "sendTo": "p",
           "chance": 99
         },
@@ -79,82 +36,59 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 256,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 28,
-        "ram_strain_kB": 28
-      }
-    },
-    "2": {
-      "multiplier": "CREATE_SECRET",
-      "name": "Sign Public Key",
-      "time": 120,
-      "step_on_err": 0,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 3,
-          "sendTo": "s",
-          "chance": 98
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "dead_payload_bit": 2048,
-      "storage": {
-        "storage_strain": "WRITE_STORAGE",
-        "storage_strain_kB": 3000,
-        "ram_strain_kB": 5
       }
     },
     "3": {
-      "multiplier": "NONE",
-      "name": "Save Certificate",
-      "time": 10,
+      "name": "Create Certificate",
+      "time": 42,
       "step_on_err": 0,
-      "step_on_succ": {},
-      "dead_payload_bit": 4000,
-      "storage": {
-        "storage_strain": "WRITE_STORAGE",
-        "storage_strain_kB": 2.048,
-        "ram_strain_kB": 5
+      "dead_payload": 1000,
+      "storage_strain": 500,
+      "ram_strain": 42,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 100
+        }
       }
+    },
+    "4": {
+      "name": "Save Certificate",
+      "time": 5,
+      "step_on_err": 0,
+      "dead_payload": 0,
+      "storage_strain": 500,
+      "ram_strain": 144,
+      "step_on_succ": {}
     }
   },
-  "validate": {
+  "create_I": {
     "1": {
-      "multiplier": "NONE",
-      "name": "Need for Key Exchange",
-      "time": 0,
+      "name": "Gen Keys",
+      "time": 120,
+      "dead_payload_bit": 0,
+      "storage_strain": 0,
+      "ram_strain": 2648,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
           "sendTo": "t",
-          "chance": 30
+          "chance": 99
         },
         "Option_2": {
-          "nextStep": 7,
+          "nextStep": 0,
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 2048,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
       }
     },
     "2": {
-      "multiplier": "NONE",
-      "name": "Send Pubkey",
-      "time": 10,
+      "name": "Gen CSR",
+      "time": 124,
+      "dead_payload_bit": 497,
+      "storage_strain": 0,
+      "ram_strain": 260,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 3,
@@ -166,19 +100,73 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 4000,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
       }
     },
     "3": {
-      "multiplier": "NONE",
-      "name": "Send PubKey back",
-      "time": 10,
+      "name": "Create Certificate",
+      "time": 42,
+      "step_on_err": 0,
+      "dead_payload": 42,
+      "storage_strain": 42,
+      "ram_strain": 42,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 100
+        }
+      }
+    },
+    "4": {
+      "name": "Save Certificate",
+      "time": 5,
+      "step_on_err": 0,
+      "dead_payload": 0,
+      "storage_strain": 500,
+      "ram_strain": 144,
+      "step_on_succ": {}
+    }
+  },
+  "validate_ECDH": {
+    "1": {
+      "name": "Setting Alice Context",
+      "time": 203,
+      "dead_payload": 360,
+      "storage_strain": -128,
+      "ram_strain": 360,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "a",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Setting Bob Context",
+      "time": 209,
+      "dead_payload": 0,
+      "storage_strain": -128,
+      "ram_strain": 372,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "t",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "3": {
+      "name": "Bob read Alice Values and compute Secret",
+      "time": 216,
+      "dead_payload": 116,
+      "storage_strain": 128,
+      "ram_strain": 116,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 4,
@@ -190,23 +178,42 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 4000,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
       }
     },
     "4": {
-      "multiplier": "COMPUTE_POINT",
-      "name": "Compute Point on Curve",
-      "time": 60,
+      "name": "Alice reading Bob Context and compute",
+      "time": 218,
+      "dead_payload": 0,
+      "storage_strain": 128,
+      "ram_strain": 116,
+      "step_on_succ": {}
+    }
+  },
+  "validate_OCSP": {
+    "1": {
+      "name": "Start",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
       "step_on_succ": {
         "Option_1": {
-          "nextStep": 5,
-          "sendTo": "p",
+          "nextStep": 2,
+          "sendTo": "a",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Sending Cert",
+      "time": 10,
+      "dead_payload": 500,
+      "storage_strain": 0,
+      "ram_strain": 144,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "s",
           "chance": 99
         },
         "Option_2": {
@@ -214,250 +221,90 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 4000,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 20
       }
     },
-    "5": {
-      "multiplier": "COMPUTE_POINT",
-      "name": "Compute Point on Curve and Shared Secret",
-      "time": 80,
+    "3": {
+      "name": "Generate OCSP",
+      "time": 10,
+      "dead_payload": 500,
+      "storage_strain": 0,
+      "ram_strain": 116,
       "step_on_succ": {
         "Option_1": {
+          "nextStep": 4,
           "sendTo": "s",
-          "chance": 99,
-          "nextStep": 6
+          "chance": 99
         },
         "Option_2": {
           "nextStep": 0,
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 4000,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 20
+      }
+    },
+    "4": {
+      "name": "Check OCSP I",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 96,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 5,
+          "sendTo": "p",
+          "chance": 75
+        },
+        "Option_2": {
+          "nextStep": 6,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "5": {
+      "name": "Check OSP R",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 96,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 6,
+          "sendTo": "s",
+          "chance": 100
+        }
       }
     },
     "6": {
-      "multiplier": "COMPUTE_POINT",
-      "name": "Compute Shared Secret",
-      "time": 30,
+      "name": "Send Back to L",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 7,
-          "sendTo": "t",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
+          "sendTo": "s",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 4000,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 20
       }
     },
     "7": {
-      "multiplier": "ENCRYPT",
-      "name": "Encrypt Request and Send",
-      "time": 30,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 8,
-          "sendTo": "p",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 500,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
-      }
-    },
-    "8": {
-      "multiplier": "ENCRYPT",
-      "name": "Decrypt and Search Certificate",
-      "time": 80,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 9,
-          "sendTo": "p",
-          "chance": 50
-        },
-        "Option_2": {
-          "nextStep": 13,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 500,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 15
-      }
-    },
-    "9": {
-      "multiplier": "ENCRYPT",
-      "name": "Encrypt Request and Send",
-      "time": 30,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 10,
-          "sendTo": "t",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 500,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
-      }
-    },
-    "10": {
-      "multiplier": "ENCRYPT",
-      "name": "Decrypt and Search Certificate",
-      "time": 80,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 11,
-          "sendTo": "t",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 0,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 15
-      }
-    },
-    "11": {
-      "multiplier": "ENCRYPT",
-      "name": "Encrypt Response and Send",
-      "time": 30,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 12,
-          "sendTo": "s",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 500,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
-      }
-    },
-    "12": {
-      "multiplier": "ENCRYPT",
-      "name": "Decrypt Response",
-      "time": 30,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 13,
-          "sendTo": "t",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 0,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
-      }
-    },
-    "13": {
-      "multiplier": "ENCRYPT",
-      "name": "Encrypt Response and Send",
-      "time": 30,
-      "step_on_succ": {
-        "Option_1": {
-          "nextStep": 14,
-          "sendTo": "s",
-          "chance": 99
-        },
-        "Option_2": {
-          "nextStep": 0,
-          "sendTo": "t",
-          "chance": 100
-        }
-      },
-      "step_on_err": 0,
-      "dead_payload_bit": 500,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
-      }
-    },
-    "14": {
-      "multiplier": "ENCRYPT",
-      "name": "Decrypt Response",
-      "time": 30,
-      "step_on_succ": {},
-      "step_on_err": 0,
-      "dead_payload_bit": 0,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
-      }
+      "name": "Finish",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {}
     }
   },
-  "expire_revoke": {
+  "expire": {
     "1": {
-      "multiplier": "NONE",
-      "name": "Send Revoke MSG",
-      "time": 50,
+      "name": "Expire on me",
+      "time": 3,
+      "dead_payload": 500,
+      "storage_strain": -500,
+      "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
@@ -469,19 +316,14 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 10
-      },
-      "dead_payload_bit": 25
+      }
     },
     "2": {
-      "multiplier": "DELETE_SECRET",
-      "name": "Revoke and Send",
-      "time": 50,
+      "name": "Expire on I",
+      "time": 5,
+      "dead_payload": 500,
+      "storage_strain": -500,
+      "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 3,
@@ -493,19 +335,14 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 10
-      },
-      "dead_payload_bit": 25
+      }
     },
     "3": {
-      "multiplier": "DELETE_SECRET",
-      "name": "Revoke and Respond",
-      "time": 50,
+      "name": "Expire on R ",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": -500,
+      "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 4,
@@ -517,19 +354,14 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "storage": {
-        "storage_strain": "READ_STORAGE",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 10
-      },
-      "dead_payload_bit": 25
+      }
     },
     "4": {
-      "multiplier": "NONE",
-      "name": "Respond to Broadcast",
+      "name": "Send Back to L",
       "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 5,
@@ -541,27 +373,15 @@
           "sendTo": "t",
           "chance": 100
         }
-      },
-      "step_on_err": 0,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 5
-      },
-      "dead_payload_bit": 25
+      }
     },
     "5": {
-      "multiplier": "NONE",
-      "name": "Finish",
+      "name": "Finish L",
       "time": 0,
-      "step_on_succ": {},
-      "step_on_err": 0,
-      "storage": {
-        "storage_strain": "0",
-        "storage_strain_kB": 0,
-        "ram_strain_kB": 0
-      },
-      "dead_payload_bit": 25
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {}
     }
   }
 }
