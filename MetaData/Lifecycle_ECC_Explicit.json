@@ -1,0 +1,387 @@
+{
+  "create_L": {
+    "1": {
+      "name": "Gen Keys",
+      "time": 240,
+      "dead_payload_bit": 0,
+      "storage_strain": 0,
+      "ram_strain": 2648,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "t",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Gen CSR",
+      "time": 248,
+      "dead_payload_bit": 497,
+      "storage_strain": 0,
+      "ram_strain": 260,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "p",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "3": {
+      "name": "Create Certificate",
+      "time": 42,
+      "step_on_err": 0,
+      "dead_payload": 1000,
+      "storage_strain": 500,
+      "ram_strain": 42,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 100
+        }
+      }
+    },
+    "4": {
+      "name": "Save Certificate",
+      "time": 5,
+      "step_on_err": 0,
+      "dead_payload": 0,
+      "storage_strain": 500,
+      "ram_strain": 144,
+      "step_on_succ": {}
+    }
+  },
+  "create_I": {
+    "1": {
+      "name": "Gen Keys",
+      "time": 120,
+      "dead_payload_bit": 0,
+      "storage_strain": 0,
+      "ram_strain": 2648,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "t",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Gen CSR",
+      "time": 124,
+      "dead_payload_bit": 497,
+      "storage_strain": 0,
+      "ram_strain": 260,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "p",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "3": {
+      "name": "Create Certificate",
+      "time": 42,
+      "step_on_err": 0,
+      "dead_payload": 42,
+      "storage_strain": 42,
+      "ram_strain": 42,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 100
+        }
+      }
+    },
+    "4": {
+      "name": "Save Certificate",
+      "time": 5,
+      "step_on_err": 0,
+      "dead_payload": 0,
+      "storage_strain": 500,
+      "ram_strain": 144,
+      "step_on_succ": {}
+    }
+  },
+  "validate_ECDH": {
+    "1": {
+      "name": "Setting Alice Context",
+      "time": 203,
+      "dead_payload": 360,
+      "storage_strain": -128,
+      "ram_strain": 360,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "a",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Setting Bob Context",
+      "time": 209,
+      "dead_payload": 0,
+      "storage_strain": -128,
+      "ram_strain": 372,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "t",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "3": {
+      "name": "Bob read Alice Values and compute Secret",
+      "time": 216,
+      "dead_payload": 116,
+      "storage_strain": 128,
+      "ram_strain": 116,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "4": {
+      "name": "Alice reading Bob Context and compute",
+      "time": 218,
+      "dead_payload": 0,
+      "storage_strain": 128,
+      "ram_strain": 116,
+      "step_on_succ": {}
+    }
+  },
+  "validate_OCSP": {
+    "1": {
+      "name": "Start",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "a",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Sending Cert",
+      "time": 10,
+      "dead_payload": 500,
+      "storage_strain": 0,
+      "ram_strain": 144,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "s",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "3": {
+      "name": "Generate OCSP",
+      "time": 10,
+      "dead_payload": 500,
+      "storage_strain": 0,
+      "ram_strain": 116,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "4": {
+      "name": "Check OCSP I",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 96,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 5,
+          "sendTo": "p",
+          "chance": 75
+        },
+        "Option_2": {
+          "nextStep": 6,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "5": {
+      "name": "Check OSP R",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 96,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 6,
+          "sendTo": "s",
+          "chance": 100
+        }
+      }
+    },
+    "6": {
+      "name": "Send Back to L",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 7,
+          "sendTo": "s",
+          "chance": 100
+        }
+      }
+    },
+    "7": {
+      "name": "Finish",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {}
+    }
+  },
+  "expire": {
+    "1": {
+      "name": "Expire on me",
+      "time": 3,
+      "dead_payload": 500,
+      "storage_strain": -500,
+      "ram_strain": 144,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "p",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "2": {
+      "name": "Expire on I",
+      "time": 5,
+      "dead_payload": 500,
+      "storage_strain": -500,
+      "ram_strain": 144,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "p",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "3": {
+      "name": "Expire on R ",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": -500,
+      "ram_strain": 144,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "4": {
+      "name": "Send Back to L",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 5,
+          "sendTo": "s",
+          "chance": 99
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "5": {
+      "name": "Finish L",
+      "time": 0,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
+      "step_on_succ": {}
+    }
+  }
+}
