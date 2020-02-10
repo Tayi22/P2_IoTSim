@@ -23,6 +23,7 @@ private:
 			int lastExpired = 0;
 			// Need to wait at least 10 Seconds until you can create a new one
 			const int waitForCreate = 10;
+			std::vector<int> valid_l_nodes;
 
 			bool hasSecret() const {
 				return secretBool;
