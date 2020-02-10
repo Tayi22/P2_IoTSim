@@ -21,8 +21,8 @@ private:
 			bool revoked = false;
 			std::chrono::time_point<system_clock> expiresAt;
 			int lastExpired = 0;
-			// Need to wait at least 10 Seconds until you can create a new one
-			const int waitForCreate = 10;
+			// Need to wait at least 60b Seconds until you can create a new one
+			const int waitForCreate = 60;
 			std::vector<int> valid_l_nodes;
 
 			bool hasSecret() const {
@@ -52,7 +52,7 @@ private:
 
 			bool canCreate(int u){
 				if (lastExpired == 0) return true;
-				if ((lastExpired - u) > waitForCreate) return true;
+				if ((u - lastExpired) > waitForCreate) return true;
 				return false;
 
  			}
@@ -204,7 +204,7 @@ private:
 		if (secret->checkExpire()){
 			if (!wTask_expire_revoke){
 				m->try_lock();
-				this->startStep("expire", index);
+				this->startStep("expire_revoke", index);
 				m->unlock();
 			}
 		}
@@ -232,7 +232,7 @@ private:
 					} else {
 						this->remote_send(pl);
 					}
-					saveEvent(getUnix(), this->getId(), this->nodeType, NTASK_FINISH, "NTask Finished working", (int)nTaskTime, 0, nTaskList.size(), currStorage, maxStorage, ram_need, maxRam);
+					saveEvent(getUnix(), this->getId(), this->nodeType, NTASK_FINISH, "NTask Finished working", (int)nTaskTime, cpu, nTaskList.size(), currStorage, maxStorage, ram_need, maxRam);
 					nTaskList.erase(it++);
 				} else {
 					it++;
@@ -339,9 +339,9 @@ private:
 		return result;
 	}
 
-	void saveEvent(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime = 0, int running_WT = 0, int running_NT = 0, int storage = 0, int max_storage = 0, int ram = 0, int max_ram = 0){
+	void saveEvent(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime = 0, float cpu = 0.f, int running_NT = 0, int storage = 0, int max_storage = 0, int ram = 0, int max_ram = 0){
 		if (es!=nullptr){
-			es->write(timestamp, nodeId, nodeType, eventType, event, completionTime, running_WT, running_NT, storage, ram, maxStorage, maxRam);
+			es->write(timestamp, nodeId, nodeType, eventType, event, completionTime, cpu, running_NT, storage, ram, maxStorage, maxRam);
 		}
 	}
 
@@ -395,11 +395,11 @@ public:
 
 			if (!secret->hasSecret()){
 				if (!wTask_create){
-					NS_LOG_INFO(toString() + " Cannot accept Packages if not Create Cycle is on the way");
+					// NS_LOG_INFO(toString() + " Cannot accept Packages if not Create Cycle is on the way");
 					return;
 				} else {
 					if (pl.i_source_id.compare(wTask_create->getPl().i_source_id) != 0){
-						NS_LOG_UNCOND("Cannot Compute this Create Package without a Secret");
+						NS_LOG_INFO("Cannot Compute this Create Package without a Secret");
 						return;
 					}
 				}
@@ -505,7 +505,7 @@ public:
 				try{
 					receipt = getReceiverAddress(pl, switchChar);
 				} catch (char const* msg){
-					NS_LOG_UNCOND(id + "Error while getting Receiver Address" + std::string(msg));
+					NS_LOG_UNCOND(toString() + " Error while getting Receiver Address: " + std::string(msg));
 					return;
 				}
 			} else {
@@ -535,9 +535,9 @@ public:
 		switch(this->nodeType){
 		case R_NODE:
 			if (allNodes->at(affectedNodeIndex)->getNodeType() == L_NODE){
-				pl = Payload(affectedNode->getIndex(), allNodes->at(affectedNode->getParentIndex())->getIndex(), "", cycle_id, "1", "",index);
+				pl = Payload(affectedNode->getIndex(), allNodes->at(affectedNode->getParentIndex())->getIndex(), "", cycle_id, "1", "",affectedNodeIndex);
 			} else if (affectedNode->getNodeType() == I_NODE){
-				pl = Payload(0, affectedNode->getIndex(), "", cycle_id , "1", "",index);
+				pl = Payload(0, affectedNode->getIndex(), "", cycle_id , "1", "",affectedNodeIndex);
 			} else {
 				NS_LOG_UNCOND("R Node targeting itself is not allowed when starting a Cycle. ");
 				return;
@@ -545,13 +545,13 @@ public:
 			break;
 		case I_NODE:
 			if (affectedNode->getNodeType() == L_NODE){
-				pl = Payload(affectedNode->getIndex(), index, "", cycle_id, "1", "",index);
+				pl = Payload(affectedNode->getIndex(), index, "", cycle_id, "1", "",affectedNodeIndex);
 			} else {
-				pl = Payload(0, index, "",cycle_id,"1", "", index);
+				pl = Payload(0, index, "",cycle_id,"1", "", affectedNodeIndex);
 			}
 			break;
 		case L_NODE:
-			pl = Payload(index, 0, "", cycle_id, "1", "",index);
+			pl = Payload(index, 0, "", cycle_id, "1", "",affectedNodeIndex);
 			break;
 
 		default:
@@ -561,7 +561,7 @@ public:
 		}
 		int wt_retry_time = (int)metaData.getData("WTASK_WAITTIME_SEED");
 		int maxTries = metaData.getData("MAX_TRIES");
-		float retry_time = intRand(wt_retry_time, wt_retry_time*2);
+		float retry_time = intRand(wt_retry_time, wt_retry_time+2000);
 		m->try_lock();
 		if (cycle_id.find("create") != std::string::npos){
 			if (!wTask_create){
@@ -611,8 +611,8 @@ public:
 					secret->setExpire(100000);
 				}
 				NS_LOG_UNCOND(toString() + " got a Secret");
-				wTask_create->getAvGTimeAlive() >= maxMs ? ms_over_count++ : ms_under_count++;
-				saveEvent(getUnix(), getId(), nodeType, CREATED, "Node got Secret", wTask_create->getTimeAlive());
+				wTask_create->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
+				saveEvent(getUnix(), getId(), nodeType, CREATED, "Node got Secret", wTask_create->getTimeSuccess());
 				wTask_create.reset();
 			}
 			m->unlock();
@@ -622,9 +622,9 @@ public:
 			m->try_lock();
 			if (wTask_expire_revoke){
 				int affectedNodeIndex = wTask_expire_revoke->getAffectedNodeIndex();
-				wTask_expire_revoke->getAvGTimeAlive() >= maxMs ? ms_over_count++ : ms_under_count++;
+				wTask_expire_revoke->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
 				// allNodes->at(wTask_expire_revoke->getAffectedNodeIndex())->getSecret().setSecret(false);
-				saveEvent(getUnix(), this->getId(), nodeType, EXPIRED, "Affected Node EXPIRED/REVOKED", wTask_expire_revoke->getTimeAlive());
+				saveEvent(getUnix(), this->getId(), nodeType, EXPIRED, "Affected Node EXPIRED/REVOKED", wTask_expire_revoke->getTimeSuccess());
 				NS_LOG_UNCOND(toString() + " revoked/expired Secret");
 				allNodes->at(affectedNodeIndex)->getSecret()->expireMe(getUnix());
 				wTask_expire_revoke.reset();
@@ -638,9 +638,8 @@ public:
 				int affectedNodeIndex = wTask_validate->getAffectedNodeIndex();
 				std::string val = allNodes->at(affectedNodeIndex)->getSecret()->validStringAndExpireIfRevoked();
 				std::string msg = toString() + " Validated Node:  " + cycle + " " + allNodes->at(affectedNodeIndex)->toString() + " " + val;
-				wTask_validate->getAvGTimeAlive() >= maxMs ? ms_over_count++ : ms_under_count++;
-				// allNodes->at(wTask_expire_revoke->getAffectedNodeIndex())->getSecret().setSecret(false);
-				saveEvent(getUnix(), this->getId(), nodeType, VALIDATED, msg, wTask_validate->getTimeAlive());
+				wTask_validate->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
+				saveEvent(getUnix(), this->getId(), nodeType, VALIDATED, msg, wTask_validate->getTimeSuccess());
 				NS_LOG_UNCOND(msg);
 				wTask_validate.reset();
 			}

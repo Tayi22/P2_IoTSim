@@ -48,7 +48,7 @@ public:
 	    cycle_id = result.at(3);
 	    step_num = result.at(4);
 	    affectedNodeIndex = result.at(5);
-	    revoked = result.at(6);
+	    revoked = result.at(7);
 	    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - stol(result.at(6));
 	}
 
@@ -65,7 +65,7 @@ public:
 	}
 
 	std::string to_string(){
-		return "Packet: leaf_source_id:" + leaf_source_id + ", i_source_id:" + i_source_id + ", wt_id: " + wt_id + ", cycle_id:" + cycle_id + ", step_num: " + step_num + ", affectedNodeIndex:" + affectedNodeIndex + ", revoked:" + revoked;
+		return "Packet: leaf_source_id:" + leaf_source_id + ", i_source_id:" + i_source_id + ", cycle_id:" + cycle_id + ", step_num: " + step_num + ", affectedNodeIndex:" + affectedNodeIndex + ", revoked:" + revoked;
 	}
 
 	std::string to_string_Payload_size(){

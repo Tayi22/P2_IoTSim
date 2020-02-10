@@ -109,7 +109,7 @@ public:
 	}
 
 	float getTimeSuccess() const {
-		return passed_time;
+		return duration_cast<milliseconds>(system_clock::now() - start_time).count();
 	}
 
 	float getAvGTimeAlive() const {

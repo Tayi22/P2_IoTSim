@@ -3,7 +3,7 @@
     "1": {
       "name": "Gen Keys",
       "time": 240,
-      "dead_payload_bit": 0,
+      "dead_payload": 0,
       "storage_strain": 0,
       "ram_strain": 2648,
       "step_on_succ": {
@@ -22,7 +22,7 @@
     "2": {
       "name": "Gen CSR",
       "time": 248,
-      "dead_payload_bit": 497,
+      "dead_payload": 497,
       "storage_strain": 0,
       "ram_strain": 260,
       "step_on_succ": {
@@ -47,7 +47,7 @@
       "step_on_succ": {
         "Option_1": {
           "nextStep": 4,
-          "sendTo": "s",
+          "sendTo": "t",
           "chance": 100
         }
       }
@@ -60,7 +60,7 @@
       "ram_strain": 0,
       "step_on_succ": {
         "Option_1": {
-          "nextStep": 4,
+          "nextStep": 5,
           "sendTo": "p",
           "chance": 100
         }
@@ -74,7 +74,7 @@
       "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
-          "nextStep": 4,
+          "nextStep": 6,
           "sendTo": "s",
           "chance": 100
         }
@@ -88,7 +88,7 @@
       "ram_strain": 0,
       "step_on_succ": {
         "Option_2": {
-          "nextStep": 4,
+          "nextStep": 7,
           "sendTo": "s",
           "chance": 100
         }
@@ -107,7 +107,7 @@
     "1": {
       "name": "Gen Keys",
       "time": 120,
-      "dead_payload_bit": 0,
+      "dead_payload": 0,
       "storage_strain": 0,
       "ram_strain": 2648,
       "step_on_succ": {
@@ -126,7 +126,7 @@
     "2": {
       "name": "Gen CSR",
       "time": 124,
-      "dead_payload_bit": 497,
+      "dead_payload": 497,
       "storage_strain": 0,
       "ram_strain": 260,
       "step_on_succ": {
@@ -137,18 +137,18 @@
         },
         "Option_2": {
           "nextStep": 0,
-          "sendTo": "t",
+          "sendTo": "p",
           "chance": 100
         }
       }
     },
     "3": {
       "name": "Create Certificate",
-      "time": 42,
+      "time": 20,
       "step_on_err": 0,
-      "dead_payload": 42,
-      "storage_strain": 42,
-      "ram_strain": 42,
+      "dead_payload": 500,
+      "storage_strain": 500,
+      "ram_strain": 2648,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 4,
@@ -285,7 +285,7 @@
     "4": {
       "name": "Check OCSP I",
       "time": 1,
-      "dead_payload": 0,
+      "dead_payload": 500,
       "storage_strain": 0,
       "ram_strain": 96,
       "step_on_succ": {
@@ -304,7 +304,7 @@
     "5": {
       "name": "Check OSP R",
       "time": 1,
-      "dead_payload": 0,
+      "dead_payload": 1,
       "storage_strain": 0,
       "ram_strain": 96,
       "step_on_succ": {
@@ -318,7 +318,7 @@
     "6": {
       "name": "Send Back to L",
       "time": 0,
-      "dead_payload": 0,
+      "dead_payload": 1,
       "storage_strain": 0,
       "ram_strain": 0,
       "step_on_succ": {
@@ -338,7 +338,7 @@
       "step_on_succ": {}
     }
   },
-  "expire": {
+  "expire_revoke": {
     "1": {
       "name": "Expire on me",
       "time": 3,

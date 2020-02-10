@@ -21,14 +21,14 @@ using namespace ns3;
 using namespace std;
 
 const int RNN = 1;
-int INN = 1;
-int LNPIN = 2;
-int runTime = 300;
+int INN = 2;
+int LNPIN = 15;
+int runTime = 1800;
 int endSimInterval = 10;
 int NN;
 const int identitySize = 5;
 int id_num[identitySize] = {0};
-int maxMs = 1000;
+int maxMs = 500;
 
 std::string jsonFile = "Lifecycle_ECC_Explicit.json";
 
@@ -125,6 +125,9 @@ int main (int argc, char *argv[])
 	positionAlloc->Add (Vector (5.0, 0.0, 0.0));
 	positionAlloc->Add (Vector (0.0, 5.0, 0.0));
 	positionAlloc->Add (Vector (0.0, 0.0, 5.0));
+	positionAlloc->Add (Vector (0.0, 0.0, 5.0));
+	positionAlloc->Add (Vector (0.0, 5.0, 5.0));
+	positionAlloc->Add (Vector (5.0, 5.0, 5.0));
 	mobility.SetPositionAllocator (positionAlloc);
 	mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 	mobility.Install (c);
