@@ -2,10 +2,10 @@
   "create_L": {
     "1": {
       "name": "Gen Keys",
-      "time": 240,
+      "time": 83996,
       "dead_payload": 0,
       "storage_strain": 0,
-      "ram_strain": 2648,
+      "ram_strain": 1676,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
@@ -21,10 +21,10 @@
     },
     "2": {
       "name": "Gen CSR",
-      "time": 248,
-      "dead_payload": 497,
+      "time": 3081,
+      "dead_payload": 1375,
       "storage_strain": 0,
-      "ram_strain": 260,
+      "ram_strain": 2684,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 3,
@@ -40,10 +40,10 @@
     },
     "3": {
       "name": "Create Certificate",
-      "time": 120,
-      "dead_payload": 500,
-      "storage_strain": 500,
-      "ram_strain": 130,
+      "time": 290,
+      "dead_payload": 1610,
+      "storage_strain": 1610,
+      "ram_strain": 1090,
       "add_cert": 1,
       "step_on_succ": {
         "Option_1": {
@@ -55,8 +55,8 @@
     },
     "4": {
       "name": "Send To R",
-      "time": 0,
-      "dead_payload": 500,
+      "time": 1,
+      "dead_payload": 1610,
       "storage_strain": 0,
       "ram_strain": 0,
       "step_on_succ": {
@@ -71,7 +71,7 @@
       "name": "Save and Send Back",
       "time": 1,
       "dead_payload": 0,
-      "storage_strain": 500,
+      "storage_strain": 1610,
       "ram_strain": 144,
       "add_cert": 1,
       "step_on_succ": {
@@ -84,7 +84,7 @@
     },
     "6": {
       "name": "Send Back to L",
-      "time": 0,
+      "time": 1,
       "dead_payload": 0,
       "storage_strain": 0,
       "ram_strain": 0,
@@ -100,7 +100,7 @@
       "name": "Save Certificate",
       "time": 10,
       "dead_payload": 0,
-      "storage_strain": 500,
+      "storage_strain": 1610,
       "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
@@ -122,10 +122,10 @@
   "create_I": {
     "1": {
       "name": "Gen Keys",
-      "time": 120,
+      "time": 40000,
       "dead_payload": 0,
       "storage_strain": 0,
-      "ram_strain": 2648,
+      "ram_strain": 1676,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
@@ -141,10 +141,10 @@
     },
     "2": {
       "name": "Gen CSR",
-      "time": 124,
-      "dead_payload": 497,
+      "time": 1540,
+      "dead_payload": 1375,
       "storage_strain": 0,
-      "ram_strain": 260,
+      "ram_strain": 1342,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 3,
@@ -162,9 +162,9 @@
       "name": "Create Certificate",
       "time": 20,
       "step_on_err": 0,
-      "dead_payload": 500,
-      "storage_strain": 500,
-      "ram_strain": 2648,
+      "dead_payload": 1610,
+      "storage_strain": 1610,
+      "ram_strain": 1090,
       "add_cert": 1,
       "step_on_succ": {
         "Option_1": {
@@ -179,7 +179,7 @@
       "time": 5,
       "step_on_err": 0,
       "dead_payload": 0,
-      "storage_strain": 500,
+      "storage_strain": 1610,
       "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
@@ -191,7 +191,7 @@
     },
     "5": {
       "name": "Finish",
-      "time": 0,
+      "time": 5,
       "step_on_err": 0,
       "dead_payload": 0,
       "storage_strain": 0,
@@ -202,10 +202,10 @@
   "validate_KE": {
     "1": {
       "name": "Setting Alice Context",
-      "time": 203,
+      "time": 240,
       "dead_payload": 360,
       "storage_strain": -128,
-      "ram_strain": 360,
+      "ram_strain": 374,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
@@ -216,7 +216,7 @@
     },
     "2": {
       "name": "Setting Bob Context",
-      "time": 209,
+      "time": 239,
       "dead_payload": 0,
       "storage_strain": -128,
       "ram_strain": 372,
@@ -235,10 +235,10 @@
     },
     "3": {
       "name": "Bob read Alice Values and compute Secret",
-      "time": 216,
+      "time": 241,
       "dead_payload": 116,
       "storage_strain": 128,
-      "ram_strain": 116,
+      "ram_strain": 374,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 4,
@@ -254,10 +254,10 @@
     },
     "4": {
       "name": "Alice reading Bob Context and compute",
-      "time": 218,
+      "time": 240,
       "dead_payload": 0,
       "storage_strain": 128,
-      "ram_strain": 116,
+      "ram_strain": 374,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 5,
@@ -279,9 +279,9 @@
     "1": {
       "name": "Start",
       "time": 1,
-      "dead_payload": 0,
+      "dead_payload": 10,
       "storage_strain": 0,
-      "ram_strain": 0,
+      "ram_strain": 10,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 2,
@@ -293,7 +293,7 @@
     "2": {
       "name": "Sending Cert",
       "time": 10,
-      "dead_payload": 500,
+      "dead_payload": 1610,
       "storage_strain": 0,
       "ram_strain": 144,
       "step_on_succ": {
@@ -310,45 +310,75 @@
       }
     },
     "3": {
-      "name": "Generate OCSP",
-      "time": 10,
-      "dead_payload": 100,
+      "name": "Request CRL List",
+      "time": 1,
+      "dead_payload": 10,
       "storage_strain": 0,
-      "ram_strain": 116,
+      "ram_strain": 10,
       "step_on_succ": {
         "Option_1": {
           "nextStep": 4,
           "sendTo": "r",
-          "chance": 99
+          "chance": 25
         },
         "Option_2": {
-          "nextStep": 0,
+          "nextStep": 6,
           "sendTo": "t",
           "chance": 100
         }
       }
     },
     "4": {
-      "name": "Check OCSP R",
+      "name": "Send CRL List",
       "time": 1,
-      "dead_payload": 10,
+      "dead_payload": 100,
       "storage_strain": 0,
       "ram_strain": 96,
-      "O()": "l",
       "step_on_succ": {
         "Option_1": {
           "nextStep": 5,
           "sendTo": "s",
           "chance": 100
         }
-      }
+      },
+      "mult_revoked": true
     },
     "5": {
-      "name": "Finish",
-      "time": 0,
+      "name": "Save CRL",
+      "time": 1,
       "dead_payload": 0,
-      "ram_strain": 0,
+      "ram_strain": 96,
       "storage_strain": 0,
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 6,
+          "sendTo": "t",
+          "chance": 100
+        }
+      },
+      "crl_storage": 100
+    },
+    "6": {
+      "name": "Loop CRL",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 96,
+      "O()": "n",
+      "step_on_succ": {
+        "Option_1": {
+          "nextStep": 7,
+          "sendTo": "t",
+          "chance": 100
+        }
+      }
+    },
+    "7": {
+      "name": "Finish",
+      "time": 1,
+      "dead_payload": 0,
+      "storage_strain": 0,
+      "ram_strain": 0,
       "step_on_succ": {}
     }
   },
@@ -356,8 +386,8 @@
     "1": {
       "time": 3,
       "name": "Expire on me",
-      "dead_payload": 500,
-      "storage_strain": -500,
+      "dead_payload": 100,
+      "storage_strain": -1610,
       "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
@@ -375,8 +405,8 @@
     "2": {
       "name": "Expire on I",
       "time": 5,
-      "dead_payload": 500,
-      "storage_strain": -500,
+      "dead_payload": 100,
+      "storage_strain": -1610,
       "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
@@ -395,7 +425,7 @@
       "name": "Expire on R ",
       "time": 1,
       "dead_payload": 0,
-      "storage_strain": -500,
+      "storage_strain": -1610,
       "ram_strain": 144,
       "step_on_succ": {
         "Option_1": {
@@ -412,7 +442,7 @@
     },
     "4": {
       "name": "Send Back to L",
-      "time": 0,
+      "time": 1,
       "dead_payload": 0,
       "storage_strain": 0,
       "ram_strain": 0,
