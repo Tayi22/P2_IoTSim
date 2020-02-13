@@ -21,16 +21,17 @@ using namespace ns3;
 using namespace std;
 
 const int RNN = 1;
-int INN = 2;
-int LNPIN = 15;
+int INN = 5;
+int LNPIN = 10;
 int runTime = 1800;
 int endSimInterval = 10;
 int NN;
 const int identitySize = 5;
 int id_num[identitySize] = {0};
 int maxMs = 500;
+const int init_revoked_certs = 100;
 
-std::string jsonFile = "Lifecycle_ECC_Explicit.json";
+std::string jsonFile = "Lifecycle_ECC_Explicit_OSCP.json";
 
 
 
@@ -68,7 +69,7 @@ int main (int argc, char *argv[])
 
 	std::shared_ptr<JsonRead> jsonRead(new JsonRead);
 	std::shared_ptr<std::mutex> mutex(new std::mutex());
-	std::shared_ptr<EventSerialize> es(new EventSerialize("allEvents.csv"));
+	std::shared_ptr<EventSerialize> es(new EventSerialize("nTaskFinish.csv", "cycleFinish.csv", "info.csv"));
 
 	Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
 	Time::SetResolution (Time::NS);
@@ -146,6 +147,7 @@ int main (int argc, char *argv[])
 	for (int i = 0; i < NN; i++){
 		if (i == 0){
 			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs));
+			temp->setNumRevokedCert(init_revoked_certs);
 			allNodes.push_back(std::move(temp));
 		} else {
 			if ((i - 1) % (1+LNPIN) == 0){
@@ -179,7 +181,7 @@ int main (int argc, char *argv[])
 	int l1;
 	int l2;
 
-	for (int i = 10; i<(runTime-endSimInterval); i++){
+	for (int i = 5; i<(runTime-endSimInterval); i++){
 		for (int u = 0; u < 5; u++){
 			srand(i);
 			n1 = rand() % l_node_indicies.size();
@@ -188,10 +190,10 @@ int main (int argc, char *argv[])
 				l1 = l_node_indicies.at(n1);
 				l2 = l_node_indicies.at(n2);
 				if (i % 2 == 0){
-					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_ECDH");
+					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_KE");
 					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_ECDH " + allNodes.at(l2)->toString());
 				} else {
-					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_OCSP");
+					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_Ident");
 					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_OCSP " + allNodes.at(l2)->toString());
 				}
 			}

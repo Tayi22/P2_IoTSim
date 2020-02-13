@@ -49,6 +49,7 @@ public:
 	    step_num = result.at(4);
 	    affectedNodeIndex = result.at(5);
 	    revoked = result.at(7);
+	    deathPayload = result.at(8);
 	    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - stol(result.at(6));
 	}
 
@@ -64,7 +65,7 @@ public:
 		return ret;
 	}
 
-	std::string to_string(){
+	std::string to_String(){
 		return "Packet: leaf_source_id:" + leaf_source_id + ", i_source_id:" + i_source_id + ", cycle_id:" + cycle_id + ", step_num: " + step_num + ", affectedNodeIndex:" + affectedNodeIndex + ", revoked:" + revoked;
 	}
 

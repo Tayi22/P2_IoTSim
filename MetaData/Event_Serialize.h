@@ -15,16 +15,28 @@ using namespace std;
 class EventSerialize{
 private:
 	const char* folder = "scratch/IoTSim_Wifi/MetaData/Output/";
-	std::ofstream outputStream;
+	std::ofstream nTaskStream;
+	std::ofstream cycleStream;
+	std::ofstream infoStream;
 	mutex m;
 
 
 
 public:
-	EventSerialize(string fileName){
-		if (!outputStream.is_open()){
-			outputStream.open(folder + fileName);
-			outputStream << "Timestamp;NodeId;NodeType;EventType;Event;CompletionTime;CPU;Running_NT;Storage;MAX_Storage;RAM;MAX_RAM\n";
+	EventSerialize(string nTaskFile, string cycleFile, string infoFile){
+		if (!nTaskStream.is_open()){
+			nTaskStream.open(folder + nTaskFile);
+			nTaskStream << "Timestamp;NodeId;NodeType;EventType;Event;CompletionTime;CPU;Running_NT;Storage;MAX_Storage;RAM;MAX_RAM\n";
+		}
+
+		if (!cycleStream.is_open()){
+			cycleStream.open(folder + cycleFile);
+			cycleStream << "Timestamp;NodeId;NodeType;EventType;Event;CompletionTime;Tries\n";
+		}
+
+		if (!infoStream.is_open()){
+			infoStream.open(folder + infoFile);
+			infoStream << "Timestamp;NodeId;NodeType;EventType;Event\n";
 		}
 	}
 
@@ -33,16 +45,35 @@ public:
 	}
 
 	void close(){
-		if (outputStream.is_open()){
-			outputStream.flush();
-			outputStream.close();
+		if (nTaskStream.is_open()){
+			nTaskStream.flush();
+			nTaskStream.close();
+		}
+		if (cycleStream.is_open()){
+			cycleStream.flush();
+			cycleStream.close();
+		}
+		if (infoStream.is_open()){
+			infoStream.flush();
+			infoStream.close();
 		}
 	}
 
-
-	void write(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime = 0, float cpu = 0.f, int running_NT = 0, int storage = 0, int ram = 0, int maxStorage = 0, int maxRam = 0){
+	void saveNTaskFinish(int timestamp, string nodeId, string nodeType, string eventType, string event, int completionTime, float cpu, int running_nt, int storage, int storage_max, int ram, int ram_max){
 		m.lock();
-		outputStream << timestamp << ";" << nodeId << ";" << nodeType << ";" << eventType << ";" << event << ";" << completionTime << ";" << cpu << ";" << running_NT << ";" << storage << ";" << maxStorage << ";" << ram << ";" << maxRam << '\n';
+		nTaskStream << timestamp << ";" << nodeId << ";" << nodeType << ";" << eventType << ";" << event << ";" << completionTime << ";" << cpu << ";" << running_nt << ";" << storage << ";" << storage_max << ";" << ram << ";" << ram_max << '\n';
+		m.unlock();
+	}
+
+	void saveCycleFinish(int timestamp, string nodeId, string nodeType, string eventType, string event, int completionTime, int tries){
+		m.lock();
+		cycleStream << timestamp << ";" << nodeId << ";" << nodeType << ";" << eventType << ";" << event << ";" << completionTime << ";" << tries << '\n';
+		m.unlock();
+	}
+
+	void saveInfo(int timestamp, string nodeId, string nodeType, string eventType, string event){
+		m.lock();
+		infoStream << timestamp << ";" << nodeId << ";" << nodeType << ";" << eventType << ";" << event << '\n';
 		m.unlock();
 	}
 

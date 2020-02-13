@@ -10,7 +10,6 @@
 
 enum NodeType {R_NODE, L_NODE, I_NODE};
 enum EventType {INFO, CREATED, VALIDATED, ERROR, NTASK_FINISH, WTASK_FINISH, EXPIRED, REVOKED, PACKET_TRAVEL};
-enum TaskType{W_TASK, N_TASK};
 
 #include <iostream>
 #include <random>
@@ -30,23 +29,11 @@ enum TaskType{W_TASK, N_TASK};
 #include <map>
 #include <list>
 #include <csignal>
+#include <math.h>
 
 // From https://github.com/nlohmann/json
 using json = nlohmann::json;
 
-
-std::string getNodeTypeString(NodeType nt){
-	switch (nt){
-	case R_NODE:
-		return "R_NODE";
-	case L_NODE:
-		return "L_NODE";
-	case I_NODE:
-		return "I_NODE";
-	default:
-		return "NO_NODE";
-	}
-}
 
 std::string getThisThreadId(){
     std::stringstream ss;
@@ -71,6 +58,8 @@ struct JsonRead{
 	json jo;
 	const char* folder = "scratch/IoTSim_Wifi/MetaData/";
 	std::mutex jm;
+	const float single_Data_access = 0.147;
+	const float single_Data_access_ram = 96;
 
 	void init(std::string jsonFile){
 		std::ifstream i(folder + jsonFile);
@@ -113,7 +102,15 @@ struct JsonRead{
 
 	void getNextStep(std::string c, std::string s, int &retNextStep, std::string &retSendTo){
 		// Get all aviable options from the step_on_succ Object.
-		json options = jo[c][s]["step_on_succ"];
+		json options;
+		try{
+			options = jo[c][s]["step_on_succ"];
+		} catch (...){
+			retNextStep = -1;
+			retSendTo = "o";
+			return;
+		}
+		srand (time(NULL));
 		int r = rand() % 100 + 1;
 		int chance = 0;
 		json option;
@@ -141,8 +138,53 @@ struct JsonRead{
 		throw "No Next step found. Check Json";
 	}
 
-	int getDeadPayloadSize(std::string c, std::string s){
+	int getDeadPayloadSize(std::string c, std::string s, int mult){
+		int payloadSize = jo[c][s]["dead_payload"];
+		try{
+			jo[c][s]["mult_revoked"];
+			payloadSize *= mult;
+		} catch (...){
+
+		}
 		return jo[c][s]["dead_payload"];
+	}
+
+	int getAddCert(std::string c, std::string s){
+		try{
+			return jo[c][s]["add_cert"];
+		} catch (...){
+			return 0;
+		}
+	}
+
+	float dataAccTimeAdd(std::string c, std::string s, int n){
+		try{
+			std::string temp = jo[c][s]["O()"];
+			switch(temp[0]) {
+			case 'l':
+				return log10(n) * single_Data_access;
+				break;
+			case 'n':
+				return single_Data_access * n;
+				break;
+			default:
+				return 0.f;
+			}
+
+		} catch (...){
+			return 0.f;
+		}
+	}
+
+	int getCrlStorage(std::string c, std::string s, int n){
+		int crl_storage;
+		try{
+			crl_storage = jo[c][s]["crl_storage"];
+			crl_storage *= n;
+		} catch (...){
+			crl_storage = 0;
+		}
+		return crl_storage;
 	}
 
 

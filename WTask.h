@@ -112,6 +112,10 @@ public:
 		return duration_cast<milliseconds>(system_clock::now() - start_time).count();
 	}
 
+	int getTries() const {
+		return retry_alive + 1;
+	}
+
 	float getAvGTimeAlive() const {
 		int temp = retry_alive - 1;
 		if (temp <= 0) temp = 1;
