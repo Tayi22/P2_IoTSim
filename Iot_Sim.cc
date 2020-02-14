@@ -21,20 +21,22 @@ using namespace ns3;
 using namespace std;
 
 const int RNN = 1;
-int INN = 1;
-int LNPIN = 2;
+int INN = 5;
+int LNPIN = 10;
 int runTime = 1800;
 int endSimInterval = 10;
 int NN;
 const int identitySize = 5;
 int id_num[identitySize] = {0};
 int maxMs = 500;
-const int init_revoked_certs = 100;
+int init_revoked_certs = 1000;
+float single_data_access = 0.147;
+int wait_to_create_again = 10;
 
-std::string jsonFile = "Lifecycle_ECC_Explicit_OSCP.json";
+// std::string jsonFile = "Lifecycle_ECC_Explicit_OSCP.json";
 // std::string jsonFile = "Lifecycle_RSA_DH_Explicit_OSCP.json";
 // std::string jsonFile = "Lifecycle_RSA_DH_Explicit_CRL.json";
-// std::string jsonFile = "Lifecycle_ECC_Explicit_OSCP.json";
+std::string jsonFile = "Lifecycle_ECC_Explicit_CRL.json";
 
 
 
@@ -84,6 +86,9 @@ int main (int argc, char *argv[])
 	cmd.AddValue("jsonFile", "Json File to import the Lifecycle (with .json)", jsonFile);
 	cmd.AddValue("runTime", "Time in Seconds how long the Simulation Runs", runTime);
 	cmd.AddValue("maxMs", "Threshhold to count number of to high latency", maxMs);
+	cmd.AddValue("single_data_access", "Time in ms it takes to perform a single Data Read = 0.147", single_data_access);
+	cmd.AddValue("createWait", "Time in ms to wait after expire to create a new Certificate", wait_to_create_again);
+	cmd.AddValue("rss", "RSS for RssLossModel. Default -70", rss);
 	// cmd.AddValue("dataRate", "Datarate in xMbps, Default 5Mbps", dataRate);
 	// cmd.AddValue("delay", "Delay in xms, Default 5ms", delay);
 	// cmd.AddValue("errorRate", "Error Rate for ErrorModel", errorRate);
@@ -92,7 +97,7 @@ int main (int argc, char *argv[])
 
 	NN = RNN + INN + (INN*LNPIN);
 
-	jsonRead->init(jsonFile);
+	jsonRead->init(jsonFile, single_data_access);
 
 	// Creates a NodeContainer for all Nodes in the Wifi
 	NodeContainer c;
@@ -149,16 +154,16 @@ int main (int argc, char *argv[])
 
 	for (int i = 0; i < NN; i++){
 		if (i == 0){
-			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs));
+			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again));
 			temp->setNumRevokedCert(init_revoked_certs);
 			allNodes.push_back(std::move(temp));
 		} else {
 			if ((i - 1) % (1+LNPIN) == 0){
 				parentIndex = i;
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again));
 				allNodes.push_back(std::move(temp));
 			} else {
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again));
 				allNodes.push_back(std::move(temp));
 				l_node_indicies.push_back(i);
 			}
@@ -183,9 +188,11 @@ int main (int argc, char *argv[])
 	int n2;
 	int l1;
 	int l2;
+	int vali_per_sec = (float)l_node_indicies.size() * 0.2f;
+	if (vali_per_sec < 1) vali_per_sec = 1;
 
 	for (int i = 5; i<(runTime-endSimInterval); i++){
-		for (int u = 0; u < 5; u++){
+		for (int u = 0; u < vali_per_sec; u++){
 			srand(i);
 			n1 = rand() % l_node_indicies.size();
 			n2 = rand() % l_node_indicies.size();

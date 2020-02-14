@@ -49,7 +49,7 @@ private:
 			std::chrono::time_point<system_clock> expiresAt;
 			int lastExpired = 0;
 			// Need to wait at least 60b Seconds until you can create a new one
-			const int waitForCreate = 60;
+			int waitForCreate = 60;
 			std::vector<int> valid_l_nodes;
 
 			bool hasSecret() const {
@@ -438,7 +438,8 @@ public:
 				std::shared_ptr<JsonRead> jr,
 				std::string metaDataPath,
 				std::shared_ptr<EventSerialize> es,
-				int maxMs
+				int maxMs,
+				int wait_to_create_again
 			):
 				id(id),
 				index(index),
@@ -452,6 +453,7 @@ public:
 				maxMs(maxMs)
 			{
 				this->secret.reset(new Secret());
+				this->secret->waitForCreate = wait_to_create_again;
 				setupSockets();
 				// this->nodeThread = Create<SystemThread>(MakeCallback(&ANode::loop, this));
 				// startThread();

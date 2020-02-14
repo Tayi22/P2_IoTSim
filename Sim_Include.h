@@ -58,10 +58,10 @@ struct JsonRead{
 	json jo;
 	const char* folder = "scratch/IoTSim_Wifi/MetaData/";
 	std::mutex jm;
-	const float single_Data_access = 0.147;
-	const float single_Data_access_ram = 96;
+	float single_Data_access;
 
-	void init(std::string jsonFile){
+	void init(std::string jsonFile, float sda){
+		single_Data_access = sda;
 		std::ifstream i(folder + jsonFile);
 		i >> jo;
 		srand (time(NULL));
