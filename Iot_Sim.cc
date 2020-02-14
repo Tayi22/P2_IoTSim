@@ -21,8 +21,8 @@ using namespace ns3;
 using namespace std;
 
 const int RNN = 1;
-int INN = 5;
-int LNPIN = 10;
+int INN = 1;
+int LNPIN = 2;
 int runTime = 1800;
 int endSimInterval = 10;
 int NN;
@@ -32,6 +32,9 @@ int maxMs = 500;
 const int init_revoked_certs = 100;
 
 std::string jsonFile = "Lifecycle_ECC_Explicit_OSCP.json";
+// std::string jsonFile = "Lifecycle_RSA_DH_Explicit_OSCP.json";
+// std::string jsonFile = "Lifecycle_RSA_DH_Explicit_CRL.json";
+// std::string jsonFile = "Lifecycle_ECC_Explicit_OSCP.json";
 
 
 
@@ -189,13 +192,19 @@ int main (int argc, char *argv[])
 			if (n1 != n2){
 				l1 = l_node_indicies.at(n1);
 				l2 = l_node_indicies.at(n2);
+
 				if (i % 2 == 0){
+					// Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_KE");
 					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_KE");
 					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_ECDH " + allNodes.at(l2)->toString());
 				} else {
 					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_Ident");
 					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_OCSP " + allNodes.at(l2)->toString());
 				}
+				/*
+				Simulator::Schedule(Seconds(i), &ANode::workOnNode, allNodes.at(l1).get(), l2);
+				NS_LOG_INFO("Scheduled WorkOnNode. " + allNodes.at(l1)->toString() + " wants to get Data from " + allNodes.at(l2)->toString());
+				*/
 			}
 		}
 

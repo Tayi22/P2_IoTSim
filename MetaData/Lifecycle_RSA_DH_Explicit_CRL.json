@@ -161,7 +161,6 @@
     "3": {
       "name": "Create Certificate",
       "time": 20,
-      "step_on_err": 0,
       "dead_payload": 1610,
       "storage_strain": 1610,
       "ram_strain": 1090,
@@ -177,7 +176,6 @@
     "4": {
       "name": "Save Certificate",
       "time": 5,
-      "step_on_err": 0,
       "dead_payload": 0,
       "storage_strain": 1610,
       "ram_strain": 144,

@@ -12,8 +12,35 @@
 
 using namespace ns3;
 
+int getUnix(){
+	std::time_t result = std::time(nullptr);
+	return result;
+}
+
+// When a NodeData needs to be rechecked in Seconds.
+const int reCheck = 20;
+
 class ANode{
 private:
+
+	struct NodeData{
+		bool ident;
+		bool ke;
+		int lastCheck;
+
+
+		NodeData(){
+			ident = false;
+			ke = false;
+			lastCheck = getUnix();
+		}
+
+		bool checkNew(){
+			if (getUnix() - lastCheck > reCheck) return true;
+			return false;
+		}
+
+	};
 
 	// Simple Struct to save Secret Data
 	struct Secret{
@@ -124,6 +151,8 @@ private:
 
 	long unsigned int cpu_ticks;
 	float sec_ticks;
+
+	std::map<int, NodeData> allNodeData;
 
 
 // Methods:
@@ -371,10 +400,7 @@ private:
 		}
 	}
 
-	int getUnix(){
-		std::time_t result = std::time(nullptr);
-		return result;
-	}
+
 
 	void saveNTaskFinish(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime, float cpu, int running_NT, int storage, int max_storage, int ram, int max_ram){
 		if (es){
@@ -657,6 +683,80 @@ public:
 
 		// calcStep(pl);
 	}
+	/*
+	void finishWTask2(std::string cycle){
+		if (cycle.find("create") != std::string::npos){
+			m->try_lock();
+			if (wTask_create){
+				secret->setSecret(true);
+				if (nodeType == L_NODE){
+					secret->setExpire(intRand(60,1800));
+				} else {
+					secret->setExpire(100000);
+				}
+				NS_LOG_UNCOND(toString() + " got a Secret");
+				wTask_create->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
+				saveCycleFinish(getUnix(), id, nodeType, CREATED, "Node got Secret", wTask_create->getTimeSuccess(), wTask_create->getTries());
+				wTask_create.reset();
+			}
+			m->unlock();
+			return;
+		}
+		if (cycle.compare("expire_revoke") == 0){
+			m->try_lock();
+			if (wTask_expire_revoke){
+				int affectedNodeIndex = wTask_expire_revoke->getAffectedNodeIndex();
+				wTask_expire_revoke->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
+				// allNodes->at(wTask_expire_revoke->getAffectedNodeIndex())->getSecret().setSecret(false);
+				saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wTask_expire_revoke->getTimeSuccess(), wTask_expire_revoke->getTries());
+				NS_LOG_UNCOND(toString() + " revoked/expired Secret");
+				allNodes->at(affectedNodeIndex)->getSecret()->expireMe(getUnix());
+				wTask_expire_revoke.reset();
+			}
+			m->unlock();
+			return;
+		}
+		if (cycle.find("validate") != std::string::npos){
+			m->try_lock();
+			if (wTask_validate){
+				bool resetTask = true;
+				int affectedNodeIndex = wTask_validate->getAffectedNodeIndex();
+				std::string val = allNodes->at(affectedNodeIndex)->getSecret()->validStringAndExpireIfRevoked();
+				std::string msg = toString() + " Validated Node:  " + cycle + " " + allNodes->at(affectedNodeIndex)->toString() + " " + val;
+				wTask_validate->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
+				saveCycleFinish(getUnix(), id, nodeType, VALIDATED, msg, wTask_validate->getTimeSuccess(), wTask_validate->getTries());
+				NS_LOG_UNCOND(msg);
+				wTask_validate.reset();
+
+				bool succ = allNodes->at(affectedNodeIndex)->getSecret()->hasSecret();
+				std::map<int, NodeData>::iterator it;
+				it = allNodeData.find(affectedNodeIndex);
+				if (succ && it == allNodeData.end()){
+					NodeData temp = NodeData();
+					it = allNodeData.insert(std::pair<int, NodeData>(affectedNodeIndex, temp)).first;
+				}
+
+				if (succ){
+					if (cycle.find("Ident") != std::string::npos){
+						it->second.ident = true;
+						it->second.lastCheck = getUnix();
+						if (!(it->second.ke)){
+							validate2(affectedNodeIndex, "validate_KE");
+							resetTask = false;
+						}
+					} else {
+						it->second.ke = true;
+					}
+				} else {
+					allNodeData.erase(it);
+				}
+				if (resetTask) wTask_validate.reset();
+			}
+			m->unlock();
+			return;
+		}
+	}
+*/
 
 	void finishWTask(std::string cycle){
 		if (cycle.find("create") != std::string::npos){
@@ -797,6 +897,34 @@ public:
 		}
 	}
 
+	void workOnNode(int affected_node){
+		sec_ticks++;
+		if (wTask_validate) return;
+		if (!(secret->hasSecret())) return;
+		std::map<int, NodeData>::iterator it;
+		it = allNodeData.find(affected_node);
+		if (it != allNodeData.end()){
+			// Found the Node.
+			if (!(it->second.ident)){
+				validate(it->first, "validate_Ident");
+			} else if (!(it->second.ke)){
+				validate(it->first, "validate_KE");
+			} else {
+				if (it->second.checkNew()){
+					validate(it->first, "validate_Ident");
+				} else {
+					return;
+				}
+			}
+		} else {
+			validate(affected_node, "validate_Ident");
+		}
+	}
+	/*
+	void validate2(int affected_node_index, std::string valCycle){
+		this->startStep(valCycle, affected_node_index);
+	}*/
+
 	void validate(int affected_node_index, std::string valCycle){
 		if (secret->hasSecret()){
 			if (!wTask_validate){
@@ -828,7 +956,7 @@ public:
 	void revokeNode(){
 		NS_LOG_UNCOND(toString() + "got Revoked");
 		allNodes->at(0)->plus_revoked();
-		this->getSecret()->setRevoked(true);
+		if (this->getSecret()->hasSecret()) this->getSecret()->setRevoked(true);
 	}
 
 
