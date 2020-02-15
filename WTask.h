@@ -27,6 +27,17 @@ private:
 	Payload pl;
 
 public:
+	WTask(){
+		passed_time = 0.f;
+		max_time = 0.f;
+		time_alive = 0.f;
+		time_alive_save_time = 0.f;
+		retry_alive = 0;
+		max_retries = 0;
+		retries = 0;
+		start_time = system_clock::now();
+	}
+
 	WTask	(
 				float max_time,
 				int max_retries,
@@ -118,9 +129,6 @@ public:
 		return time_alive / temp;
 	}
 
-	int getAffectedNodeIndex() const {
-		return affected_node_index;
-	}
 };
 
 

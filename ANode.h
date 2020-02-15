@@ -238,15 +238,6 @@ private:
 
 	}
 
-	std::map<int, WTask>::iterator getWTask(int aff_node){
-		std::map<int, WTask>::iterator it;
-		it = wTaskMap.find(aff_node);
-		if (it == wTaskMap.end()){
-			return nullptr;
-		}
-		return it;
-	}
-
 	bool canCreatePassive(std::string cylce_id){
 		std::map<int, WTask>::iterator it;
 		it = wTaskMap.find(index);
@@ -498,6 +489,8 @@ public:
 			}
 		}
 
+		NS_LOG_UNCOND(toString() + "working on " + pl.toString());
+
 		float time_need;
 		int ram_need;
 		float time_data_access = 0;
@@ -513,6 +506,7 @@ public:
 		int payload_size = jsonRead->getDeadPayloadSize(pl.cycle_id, pl.step_num, num_revoked_cert_temp);
 		if (payload_size < 0){
 			NS_LOG_DEBUG("No Payload in PL: " + pl.toString());
+			payload_size = 0;
 		}
 
 		std::string dead_payload(payload_size, '1');
@@ -558,7 +552,7 @@ public:
 		try{
 			jsonRead->getNextStep(pl.cycle_id, pl.step_num, option, nextStep, sendTo);
 		} catch (...){
-			NS_LOG_UNCOND("Critical Error while getting Next Step. ");
+			NS_LOG_UNCOND("Critical Error while getting Next Step. " + pl.toString());
 			throw ("Critical Error while getting NextStep");
 		}
 
@@ -694,6 +688,7 @@ public:
 		case L_NODE:
 			if (switchChar == 'p'){
 				receiver_index = this->parentIndex;
+				pl.addSource(index);
 			} else if (switchChar == 'a'){
 				receiver_index = pl.getAffectedNode();
 				pl.addSource(index);

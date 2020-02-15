@@ -81,16 +81,14 @@ struct JsonRead{
 		json next_step;
 		try{
 			next_step = jo[c][s]["next_step"];
+			std::string opt = "Option_" + std::to_string(option);
+			nextStep = next_step[opt]["nextStep"];
+			sendTo = next_step[opt]["sendTo"];
 		} catch (...){
 			nextStep = -1;
 			sendTo = "";
 			return 0;
 		}
-
-		std::string opt = "Option_" + std::to_string(option);
-		nextStep = next_step[opt]["nextStep"];
-		sendTo = next_step[opt]["sendTo"];
-
 		return 0;
 	}
 
@@ -113,16 +111,21 @@ struct JsonRead{
 		json storage;
 		try{
 			storage = jo[c][s]["storage"];
+			int test = storage["crl"];
+			return test;
 		} catch (...){
 			return -1;
 		}
 
 		try{
-			crl += storage["crl"];
+			int tempCrl = storage["crl"];
+			int tempKey = storage["key"];
+			int tempCert = storage["cert"];
+			crl += tempCrl;
 			if (crl < 0) crl = 0;
-			key += storage["key"];
+			key += tempKey;
 			if (key < 0) key = 0;
-			cert += storage["cert"];
+			cert += tempCert;
 			if (cert < 0) cert = 0;
 		} catch (...){
 			throw "Storage was defined but crl, key or cert is missing";
@@ -142,9 +145,9 @@ struct JsonRead{
 		try{
 			type = jo[c][s]["check_revoke_list"];
 			if (type.compare("OSCP") == 0){
-				accTime = single_data_access * log10(num_revo);
+				accTime = single_Data_access * log10(num_revo);
 			} else if (type.compare("CRL") == 0){
-				accTime = single_data_access * num_revo;
+				accTime = single_Data_access * num_revo;
 			}
 		} catch (...){
 			return -1;
@@ -171,25 +174,6 @@ struct JsonRead{
 		}
 	}
 
-	float dataAccTimeAdd(std::string c, std::string s, int n){
-		try{
-			std::string temp = jo[c][s]["O()"];
-			switch(temp[0]) {
-			case 'l':
-				return log10(n) * single_Data_access;
-				break;
-			case 'n':
-				return single_Data_access * n;
-				break;
-			default:
-				return 0.f;
-			}
-
-		} catch (...){
-			return 0.f;
-		}
-	}
-
 	int getCrlStorage(std::string c, std::string s, int n){
 		int crl_storage;
 		try{
@@ -199,19 +183,6 @@ struct JsonRead{
 			crl_storage = 0;
 		}
 		return crl_storage;
-	}
-
-
-	void getStorageData(std::string c, std::string s, int &needStorage, int &needRam){
-		jm.lock();
-		json storage = jo[c][s];
-		needStorage = storage["storage_strain"];
-		needRam = storage["ram_strain"];
-		jm.unlock();
-	}
-
-	char getErrorStep(std::string c, std::string s){
-		return (int)(jo[c][s]["step_on_err"]);
 	}
 
 

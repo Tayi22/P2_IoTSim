@@ -20,6 +20,15 @@ public:
 	ns3::InetSocketAddress next_receipt = "1.1.1.1";
 	std::string affected_node;
 
+	Payload(){
+		source_indices = "";
+		wTaskId = "";
+		cycle_id = "";
+		step_num = "";
+		dead_payload = "";
+		affected_node = "";
+	}
+
 
 	Payload(	int wti,
 				std::string ci,
@@ -35,7 +44,7 @@ public:
 				source_indices = "";
 		}
 
-	Payload(const std::string &payloadString){
+	Payload(const std::string payloadString){
 		std::vector<std::string> result;
 		std::stringstream ss (payloadString);
 		std::string item;

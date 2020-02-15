@@ -72,7 +72,7 @@ public:
 	}
 
 	std::string toString(){
-		return "RamNeed:" + std::to_string(ramNeeded) + ", Time to complete:" + std::to_string(timeToComplete) + " Packet: " + pl.to_String();
+		return "RamNeed:" + std::to_string(ramNeeded) + ", Time to complete:" + std::to_string(timeToComplete) + " Packet: " + pl.toString();
 	}
 };
 
