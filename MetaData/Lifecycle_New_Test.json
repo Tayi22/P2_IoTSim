@@ -194,5 +194,83 @@
       "ram_strain": 1,
       "time": 1
     }
+  },
+  "expire_revoke": {
+    "1": {
+      "name": "Expire on Me",
+      "ram_strain": 144,
+      "time": 3,
+      "storage": {
+        "key": 0,
+        "cert": -1500,
+        "crl": 0
+      },
+      "payload": {
+        "size": 100,
+        "mult_with": 1
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "p"
+        }
+      }
+    },
+    "2": {
+      "name": "Expire on I",
+      "ram_strain": 144,
+      "time": 3,
+      "storage": {
+        "key": 0,
+        "cert": -1000,
+        "crl": 0
+      },
+      "payload": {
+        "size": 100,
+        "mult_with": 1
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "p"
+        }
+      }
+    },
+    "3": {
+      "name": "Expire on R",
+      "ram_strain": 144,
+      "time": 3,
+      "storage": {
+        "key": 0,
+        "cert": -500,
+        "crl": 0
+      },
+      "payload": {
+        "size": 100,
+        "mult_with": 1
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "s"
+        }
+      }
+    },
+    "4": {
+      "name": "Return L",
+      "ram_strain": 144,
+      "time": 3,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 5,
+          "sendTo": "s"
+        }
+      }
+    },
+    "5": {
+      "name": "Finish",
+      "ram_strain": 1,
+      "time": 3
+    }
   }
 }
