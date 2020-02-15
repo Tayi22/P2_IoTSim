@@ -191,6 +191,7 @@ int main (int argc, char *argv[])
 	int vali_per_sec = (float)l_node_indicies.size() * 0.2f;
 	if (vali_per_sec < 1) vali_per_sec = 1;
 
+	/*
 	for (int i = 5; i<(runTime-endSimInterval); i++){
 		for (int u = 0; u < vali_per_sec; u++){
 			srand(i);
@@ -211,18 +212,19 @@ int main (int argc, char *argv[])
 				/*
 				Simulator::Schedule(Seconds(i), &ANode::workOnNode, allNodes.at(l1).get(), l2);
 				NS_LOG_INFO("Scheduled WorkOnNode. " + allNodes.at(l1)->toString() + " wants to get Data from " + allNodes.at(l2)->toString());
-				*/
+
 			}
 		}
 
 	}
+	*/
 
 
 	for (auto n : allNodes) {
 		Simulator::Schedule(Seconds(runTime-(endSimInterval + 1)), &ANode::killNode, n.get(), "Natural");
 	}
 
-	Simulator::Schedule(Seconds(60), &ANode::revokeNode, allNodes.at(3).get());
+	// Simulator::Schedule(Seconds(60), &ANode::revokeNode, allNodes.at(3).get());
 
 
 

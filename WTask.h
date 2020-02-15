@@ -26,19 +26,15 @@ private:
 
 	Payload pl;
 
-	int affected_node_index;
-
 public:
 	WTask	(
 				float max_time,
 				int max_retries,
-				Payload pl,
-				int affected_node_index
+				Payload pl
 			):
 				max_time(max_time),
 				max_retries(max_retries),
-				pl(pl),
-				affected_node_index(affected_node_index)
+				pl(pl)
 			{
 				passed_time = 0.f;
 				retries = 0;

@@ -12,103 +12,107 @@
 
 class Payload{
 public:
-	std::string leaf_source_id;
-	std::string i_source_id;
-	std::string wt_id;
-	std::string cycle_id; // Cycle Number
-	std::string step_num; // Step Number
-	std::string deathPayload;
-	std::string affectedNodeIndex;
+	std::string source_indices;
+	std::string wTaskId;
+	std::string cycle_id;
+	std::string step_num;
+	std::string dead_payload;
 	ns3::InetSocketAddress next_receipt = "1.1.1.1";
-	std::string revoked;
+	std::string affected_node;
 
-	Payload(int leaf_source_id,
-			int i_source_id,
-			std::string wt_id,
-			std::string cycle_id,
-			std::string step_num,
-			std::string deathPayload,
-			int starter_id)
-	: leaf_source_id(std::to_string(leaf_source_id)), i_source_id(std::to_string(i_source_id)), wt_id(wt_id), cycle_id(cycle_id), step_num(step_num), deathPayload(deathPayload), affectedNodeIndex(std::to_string(starter_id)), revoked("0"){}
-	Payload() : leaf_source_id(""), i_source_id(""), wt_id(""), cycle_id(""), step_num(""), deathPayload(""), affectedNodeIndex(""), revoked("0"){}
 
-	long readPayloadString(const std::string &payloadString){
+	Payload(	int wti,
+				std::string ci,
+				int sn,
+				int an
+			) :
+				wTaskId(std::to_string(wti)),
+				cycle_id(ci),
+				step_num(std::to_string(sn)),
+				affected_node(std::to_string(an))
+		{
+				dead_payload = "";
+				source_indices = "";
+		}
 
+	Payload(const std::string &payloadString){
 		std::vector<std::string> result;
 		std::stringstream ss (payloadString);
 		std::string item;
 
-	    while (getline (ss, item, ',')) {
-	        result.push_back (item);
-	    }
+		while (getline (ss, item, ',')) {
+			result.push_back (item);
+		}
 
-	    leaf_source_id = result.at(0);
-	    i_source_id = result.at(1);
-	    wt_id = result.at(2);
-	    cycle_id = result.at(3);
-	    step_num = result.at(4);
-	    affectedNodeIndex = result.at(5);
-	    revoked = result.at(7);
-	    deathPayload = result.at(8);
-	    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - stol(result.at(6));
+		source_indices = result.at(0);
+		wTaskId = result.at(1);
+		cycle_id = result.at(2);
+		step_num = result.at(3);
+		affected_node = result.at(4);
+		dead_payload = "";
+	}
+
+
+	void addSource(int node_index){
+		if (source_indices.empty()){
+			source_indices = std::to_string(node_index);
+		} else {
+			source_indices += ("-" + std::to_string(node_index));
+		}
+	}
+
+	void remSource(int node_index){
+		if (source_indices.empty()){
+			throw "Cannot remove a Source from an empty Source indices String";
+		}
+
+		size_t pos = source_indices.find_last_of("-");
+		if (pos == std::string::npos){
+			source_indices = "";
+		} else {
+			int lastIndex = std::stoi(source_indices.substr(pos+1));
+			if (node_index == lastIndex) source_indices = source_indices.substr(0, pos);
+		}
+	}
+
+	int getLastSourceIndex(){
+		if (source_indices.empty()){
+			throw ("Source Index is empty");
+		}
+		size_t pos = source_indices.find_last_of("-");
+		if (pos == std::string::npos){
+			return std::stoi(source_indices);
+		} else {
+			return std::stoi(source_indices.substr(pos+1));
+		}
 	}
 
 	void setNextReceipt(ns3::InetSocketAddress nr){
 		this->next_receipt = nr;
 	}
 
-	std::string genPayloadString(){
-		// float lastUpdate = std::chrono::duration_cast<m<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch().count();
-		long lastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-		std::string ret;
-		ret = leaf_source_id + "," + i_source_id + "," + wt_id + "," + cycle_id + "," + step_num + "," + affectedNodeIndex + "," + std::to_string(lastUpdate) + "," + revoked + "," + deathPayload;
-		return ret;
-	}
-
-	std::string to_String(){
-		return "Packet: leaf_source_id:" + leaf_source_id + ", i_source_id:" + i_source_id + ", cycle_id:" + cycle_id + ", step_num: " + step_num + ", affectedNodeIndex:" + affectedNodeIndex + ", revoked:" + revoked;
-	}
-
-	std::string to_string_Payload_size(){
-		return "Packet: leaf_source_id: " + leaf_source_id + " i_source_id: " + i_source_id + "wt_id: " + wt_id + " cycle_id: " + cycle_id + " step_num: " + step_num + " affectedNodeIndex: " + affectedNodeIndex + " " + "Payload Size: " + std::to_string(deathPayload.size());
-	}
-
 	ns3::InetSocketAddress getNextReceipt() const {
 		return next_receipt;
 	}
 
-	void setRevoked(std::string r){
-		this->revoked = r;
+	std::string genPayloadString(){
+		return source_indices + "," + wTaskId + "," + cycle_id + "," + step_num + "," + affected_node + "," + dead_payload;
 	}
 
-	int getAffectedNodeIndex(){
-		return std::stoi(affectedNodeIndex);
+	std::string toString(){
+		return "Source Indices:" + source_indices + ", wTaskId: " + wTaskId + ", Cycle Id:" + cycle_id + ", " + "Step Num:" + step_num + ", Affected Node:" + affected_node + ", Dead Payload Size:" + std::to_string(dead_payload.size());
 	}
-
 
 	void setDeathPayload(const std::string &deathPayload) {
-		this->deathPayload = deathPayload;
+		this->dead_payload = deathPayload;
 	}
 
 	void setStepNum(const std::string &stepNum) {
 		step_num = stepNum;
 	}
 
-	/*
-	bool checkSource(const NodeType & nt, const Payload& pl){
-		if (nt == I_NODE){
-			if (i_source_id.compare(pl.i_source_id) == 0) return true;
-		} else if (nt == L_NODE){
-			if (leaf_source_id.compare(pl.leaf_source_id) == 0) return true;
-		} else {
-			if (starter_id)
-		}
-		return false;
-	}*/
-
-	bool checkStarter(Payload& pl){
-		if (this->affectedNodeIndex.compare(pl.affectedNodeIndex) == 0) return true;
-		return false;
+	int getAffectedNode() const {
+		return std::stoi(affected_node);
 	}
 };
 

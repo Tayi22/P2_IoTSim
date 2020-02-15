@@ -23,15 +23,25 @@ const int reCheck = 20;
 class ANode{
 private:
 
+	struct StorageData{
+		int key = 0;
+		int cert = 0;
+		int crl = 0;
+
+		int getStorage(){
+			return key + cert + crl;
+		}
+	};
+
 	struct NodeData{
-		bool ident;
-		bool ke;
+		bool isValid;
+		bool hasCrl;
 		int lastCheck;
 
 
 		NodeData(){
-			ident = false;
-			ke = false;
+			isValid = false;
+			hasCrl = false;
 			lastCheck = getUnix();
 		}
 
@@ -50,7 +60,7 @@ private:
 			int lastExpired = 0;
 			// Need to wait at least 60b Seconds until you can create a new one
 			int waitForCreate = 60;
-			std::vector<int> valid_l_nodes;
+			// std::vector<int> valid_l_nodes;
 
 			bool hasSecret() const {
 				return secretBool;
@@ -128,9 +138,14 @@ private:
 	std::shared_ptr<std::mutex> m;
 
 	std::list<NTask> nTaskList;
+	/*
 	std::unique_ptr<WTask> wTask_create;
 	std::unique_ptr<WTask> wTask_validate;
 	std::unique_ptr<WTask> wTask_expire_revoke;
+	*/
+
+	std::map<int, WTask> wTaskMap;
+	int nextId = 0;
 
 	std::shared_ptr<JsonRead> jsonRead;
 	MetaData metaData;
@@ -141,8 +156,7 @@ private:
 
 	int max_used_ram;
 	int maxStorage;
-	int currStorage;
-	int crlStorage;
+	StorageData storage_data;
 	int maxRam;
 	int maxMs;
 	int ms_over_count;
@@ -164,19 +178,21 @@ private:
 	    return distribution(*generator);
 	}
 
+
 	Payload getPayloadFromPacket(const Ptr<Packet>& pk){
 
 		uint8_t * buffer = new uint8_t[pk->GetSize()];
 		pk->CopyData(buffer, pk->GetSize());
 
 		std::string s = std::string(buffer, buffer+(pk)->GetSize());
-		Payload pl = Payload();
+		Payload pl;
 
 		try{
-			/* long packetTime = */ pl.readPayloadString(s);
-			// saveEvent(getUnix(), id, nodeType, PACKET_TRAVEL, "Packet Time Travel", packetTime);
+			pl = Payload(s);
 		} catch (char const* msg){
-			NS_LOG_UNCOND(id + " cannot extract Payload: " + msg);
+			NS_LOG_UNCOND(toString() + " cannot extract Payload: " + msg);
+		} catch (...){
+			NS_LOG_UNCOND(toString() + " cannot extract Payload");
 		}
 
 		delete buffer;
@@ -212,8 +228,6 @@ private:
 			this->secret->setSecret(false);
 		}
 
-		currStorage = 0;
-		crlStorage = 0;
 		maxStorage = metaData.getData("MAX_STORAGE");
 		maxRam = metaData.getData("MAX_RAM");
 		ms_over_count = 0;
@@ -224,9 +238,30 @@ private:
 
 	}
 
+	std::map<int, WTask>::iterator getWTask(int aff_node){
+		std::map<int, WTask>::iterator it;
+		it = wTaskMap.find(aff_node);
+		if (it == wTaskMap.end()){
+			return nullptr;
+		}
+		return it;
+	}
+
+	bool canCreatePassive(std::string cylce_id){
+		std::map<int, WTask>::iterator it;
+		it = wTaskMap.find(index);
+		if (it == wTaskMap.end()){
+			return true;
+		}
+		if (it->second.getPl().cycle_id.find(cylce_id) != std::string::npos){
+			return true;
+		}
+		return false;
+	}
+
 	void passiveCreate(){
 		if (!secret->hasSecret()){
-			if (!wTask_create){
+			if (canCreatePassive("create")){
 				m->try_lock();
 				if (secret->canCreate(getUnix())){
 					if (nodeType == L_NODE){
@@ -242,7 +277,8 @@ private:
 
 	void passiveExpire(){
 		if (secret->checkExpire()){
-			if (!wTask_expire_revoke){
+			WTask wt;
+			if (canCreatePassive("validate")){
 				m->try_lock();
 				this->startStep("expire_revoke", index);
 				m->unlock();
@@ -276,7 +312,7 @@ private:
 					} else {
 						this->remote_send(pl);
 					}
-					saveNTaskFinish(getUnix(), getId(), nodeType, NTASK_FINISH, it->toString(), (int)nTaskTime, sec_ticks/cpu_ticks, nTaskList.size(), currStorage, maxStorage, ram_need, maxRam);
+					saveNTaskFinish(getUnix(), getId(), nodeType, NTASK_FINISH, it->toString(), (int)nTaskTime, sec_ticks/cpu_ticks, nTaskList.size(), storage_data.getStorage(), maxStorage, ram_need, maxRam);
 					nTaskList.erase(it++);
 				} else {
 					it++;
@@ -287,7 +323,6 @@ private:
 	}
 
 	void changeParent(){
-		m->try_lock();
 		for (int i = parentIndex+1; i < (parentIndex + (int)allNodes->size()); i++){
 			if (i == (int)allNodes->size()){
 				i = 0;
@@ -298,21 +333,20 @@ private:
 				break;
 			}
 		}
-		if (wTask_create) wTask_create->getPl().setNextReceipt(allNodes->at(parentIndex)->getInetSocketAddress());
-		if (wTask_validate) wTask_validate->getPl().setNextReceipt(allNodes->at(parentIndex)->getInetSocketAddress());
-		if (wTask_expire_revoke) wTask_expire_revoke->getPl().setNextReceipt(allNodes->at(parentIndex)->getInetSocketAddress());
-		m->unlock();
+
 	}
 
 	void checkWTask(){
 		int wTask_status;
-		if (wTask_create){
-			m->lock();
-			wTask_status = wTask_create->check();
-			m->unlock();
+		std::map<int, WTask>::iterator it;
+
+		m->try_lock();
+		for (it = wTaskMap.begin(); it != wTaskMap.end(); it++){
+			wTask_status = it->second.check();
+
 			if (wTask_status == 1){
 				NS_LOG_UNCOND(toString() + " Retry Create");
-				calcStep(wTask_create->getPl());
+				calcStep(it->second.getPl());
 			} else if (wTask_status == 2){
 				if (nodeType == L_NODE){
 					changeParent();
@@ -321,41 +355,21 @@ private:
 				}
 			}
 		}
-		if (wTask_expire_revoke){
-			m->lock();
-			wTask_status = wTask_expire_revoke->check();
-			m->unlock();
-			if (wTask_status == 1){
-				NS_LOG_UNCOND(toString() + " Retry Expire Revoke");
-				calcStep(wTask_expire_revoke->getPl());
-			} else if (wTask_status == 2){
-				if (nodeType == L_NODE){
-					changeParent();
-				} else {
-					killNode("I think the Root node is ded");
-				}
-			}
-		}
-		if (wTask_validate){
-			m->lock();
-			wTask_status = wTask_validate->check();
-			m->unlock();
-			if (wTask_status == 1){
-				NS_LOG_UNCOND(toString() + " Retry Validate");
-				calcStep(wTask_validate->getPl());
-			} else if (wTask_status == 2){
-				if (nodeType == L_NODE){
-					changeParent();
-				} else {
-					killNode("I think the Root node is ded");
-				}
-			}
-		}
+		m->unlock();
 	}
 
-	bool checkCondition(std::string con){
-		if (con.compare("test") == 0){
-			return true;
+	int checkCondition(std::string con, int aff_node){
+		if (con.empty()) return 1;
+		if (con.compare("has_Crl") == 0){
+			std::map<int, NodeData>::iterator it;
+			it = allNodeData.find(aff_node);
+			if (it == allNodeData.end()){
+				return 1;
+			}
+			if (it->second.hasCrl){
+				return 2;
+			}
+			return 1;
 		}
 
 		NS_LOG_UNCOND("Condition " + con + " not found");
@@ -473,126 +487,101 @@ public:
 
 	void calcStep(Payload pl){
 		if (!running) return;
-
-		NS_LOG_INFO(toString() + " working on: " + pl.to_String());
+		NS_LOG_INFO(toString() + " working on: " + pl.toString());
 
 		if (nodeType == I_NODE){
-
 			if (!secret->hasSecret()){
-				if (!wTask_create){
-					// NS_LOG_INFO(toString() + " Cannot accept Packages if not Create Cycle is on the way");
+				if (wTaskMap.count(pl.getAffectedNode()) == 0){
+					NS_LOG_INFO("Cannot Compute Package until i have a Secret");
 					return;
-				} else {
-					if (pl.i_source_id.compare(wTask_create->getPl().i_source_id) != 0){
-						NS_LOG_INFO("Cannot Compute this Create Package without a Secret");
-						return;
-					}
 				}
 			}
 		}
 
-		if (this->nodeType == R_NODE || this->nodeType == I_NODE){
-			if (allNodes->at(pl.getAffectedNodeIndex())->getSecret()->isRevoked()){
-				pl.setRevoked("1");
-			} else {
-				pl.setRevoked("0");
-			}
-		}
-
-		float timeNeeded = 0;
-
+		float time_need;
+		int ram_need;
+		float time_data_access = 0;
+		bool self_send = false;
 		int num_revoked_cert_temp = allNodes->at(0)->getNumRevokedCert();
-		float timeDataAccess = jsonRead->dataAccTimeAdd(pl.cycle_id, pl.step_num, num_revoked_cert_temp);
-
-		int ramNeeded = 0;
-		int needStorage;
-		float storageMultiplier = 1.f;
-		// std::string storageMultiplierString;
-		bool selfSend = false;
-
-		int payloadSize = 0;
-		try{
-			payloadSize = jsonRead->getDeadPayloadSize(pl.cycle_id, pl.step_num, num_revoked_cert_temp);
-			// payloadSize /= 8;
-		} catch (char const* msg){
-			payloadSize = 1;
-		}
-
-		if (payloadSize < 1) payloadSize = 1;
-		std::string deadPayload(payloadSize, '1');
-
-		int crlStorageTemp = jsonRead->getCrlStorage(pl.cycle_id, pl.step_num, num_revoked_cert_temp);
-		if (crlStorageTemp > 0) crlStorage = crlStorageTemp;
-
-		try {
-			jsonRead->getStorageData(pl.cycle_id, pl.step_num, needStorage, ramNeeded);
-		} catch (char const* msg){
-			std::string errString(msg);
-			errString = "Could not extract Storage Data in cycleNum/step (getStorageData): " + pl.cycle_id + "/" + pl.step_num + " ErrorString: " + errString;
-			NS_LOG_UNCOND(errString);
-			saveInfo(getUnix(), id, nodeType, ERROR, getJsonErrString(msg, pl.cycle_id, pl.step_num));
-			return;
-		}
-
-		if (needStorage != 0){
-			currStorage += needStorage;
-			if (currStorage < 0) currStorage = 0;
-			if (currStorage + crlStorage >= maxStorage){
-				saveInfo(getUnix(), id, nodeType, ERROR, "Storage is Full and cannot compute Step");
-				NS_LOG_UNCOND("Storage Full " + std::to_string(currStorage + crlStorage) + " " + std::to_string(maxStorage));
-				return;
-			} else {
-				// Add some more Time to the StorageMultiplier cause Storage needs more time the more Data is stored.
-				storageMultiplier = (((currStorage + crlStorage)/ maxStorage) + 1);
-			}
-		}
-
-		try {
-			timeNeeded = this->jsonRead->getTime(pl.cycle_id, pl.step_num);
-			timeNeeded += timeDataAccess;
-			timeNeeded *= storageMultiplier;
-		} catch (char const* msg){
-			saveInfo(getUnix(), id, nodeType, ERROR, getJsonErrString(msg, pl.cycle_id, pl.step_num));
-			NS_LOG_UNCOND(id + " Could not extract Time Multipliers: cycle/step: " + pl.cycle_id + "/" + pl.step_num);
-			return;
-		}
+		bool check_valid = false;
 		std::string sendTo;
 		int nextStep;
+		int option = 1;
+		std::string condition = "";
 
-		std::string condition;
-		int withCon = jsonRead->getCondition(pl.cycle_id, pl.step_num, condition);
+		// Check of a Payload Size is specified and build a string with payloadsize bytes or 1.
+		int payload_size = jsonRead->getDeadPayloadSize(pl.cycle_id, pl.step_num, num_revoked_cert_temp);
+		if (payload_size < 0){
+			NS_LOG_DEBUG("No Payload in PL: " + pl.toString());
+		}
 
+		std::string dead_payload(payload_size, '1');
+
+		// Get critical information for the next task. Fails the Simulation if not found.
 		try{
-			if (withCon == 0){
-				jsonRead->getNextStepCondition(pl.cycle_id, pl.step_num, nextStep, sendTo, checkCondition(condition));
-			} else {
-				jsonRead->getNextStep(pl.cycle_id, pl.step_num, nextStep, sendTo);
-			}
-		} catch (char const* msg){
-			NS_LOG_UNCOND("There was an error getting the Condition next Step");
-			saveInfo(getUnix(), id, nodeType, ERROR, getJsonErrString(msg, pl.cycle_id, pl.step_num));
+			jsonRead->getTimeRam(pl.cycle_id, pl.step_num, time_need, ram_need);
+		} catch (...){
+			NS_LOG_UNCOND(pl.toString() + " doesnt include must have data time or ram_strain");
+			throw ("Critical error in Simulation in getTimeRam from calcStep");
+		}
+
+		// Get Information about the storage usage (cert, crl, key). If no storage field is specified -> No Problem. If a storage field is specified but an element is missing it creates a critical Error
+		try{
+			jsonRead->getStorageData(pl.cycle_id, pl.step_num, storage_data.crl, storage_data.key, storage_data.cert);
+		} catch (...){
+			NS_LOG_UNCOND(pl.toString() + " does include Storage but is missing crl, key or cert field");
+			throw ("Critical error in Simulation in getStorageData from calcStep");
 			return;
 		}
 
-		pl.setDeathPayload(deadPayload);
+		// Get Additional Time to access data.
+		if (jsonRead->getAccTime(pl.cycle_id, pl.step_num, time_data_access, num_revoked_cert_temp) < 0){
+			NS_LOG_DEBUG("No check_revoke_list field in " + pl.toString());
+		}
+
+		time_need += time_data_access;
+
+		// Check if we need to see if the affected node has a secret.
+		if (jsonRead->checkvalid(pl.cycle_id, pl.step_num, check_valid) < 0){
+			NS_LOG_DEBUG("No check_valid_add field in " + pl.toString());
+		}
+
+		// Get a Condition if there is one
+		if (jsonRead->getCondition(pl.cycle_id, pl.step_num, condition) < 0){
+			NS_LOG_DEBUG("No condition found in " + pl.toString());
+		}
+
+		// Check if we need to switch from Option 1 to 2. Can critical Fail if a stated condition is not implemented.
+		option = checkCondition(condition, pl.getAffectedNode());
+
+		// Get the next Step. Critical Error if a found next_step object doesnt contain sendTo + nextStep
+		try{
+			jsonRead->getNextStep(pl.cycle_id, pl.step_num, option, nextStep, sendTo);
+		} catch (...){
+			NS_LOG_UNCOND("Critical Error while getting Next Step. ");
+			throw ("Critical Error while getting NextStep");
+		}
+
+
+		// Check if the affected Node has a valid Secret or finish the current WTask;
+		if (check_valid){
+			if (!(allNodes->at(pl.getAffectedNode())->getSecret()->hasSecret())){
+				finishWTask(pl.getAffectedNode());
+				return;
+			}
+		}
+
+		pl.setDeathPayload(dead_payload);
 		pl.setStepNum(std::to_string(nextStep));
 		InetSocketAddress receipt = "1.1.1.1";
 
 		if (nextStep == -1){
-			finishWTask(pl.cycle_id);
-		} else if (nextStep == 0){
-			saveInfo(getUnix(), id, nodeType, ERROR, "Cycle " + pl.cycle_id + " ended in Step 0 after " + pl.step_num);
+			finishWTask(pl.getAffectedNode());
 		} else {
 			char switchChar = sendTo[0];
 			if (switchChar == 't'){
-				selfSend = true;
+				self_send = true;
 			} else if (switchChar == 's' || switchChar == 'p' || switchChar == 'a' || switchChar == 'r'){
-				if (switchChar == 'a'){
-					if (pl.revoked.compare("1") == 0){
-						finishWTask(pl.cycle_id);
-						return;
-					}
-				}
 				try{
 					receipt = getReceiverAddress(pl, switchChar);
 				} catch (char const* msg){
@@ -605,220 +594,77 @@ public:
 			}
 
 			pl.setNextReceipt(receipt);
-			NTask nt = NTask(timeNeeded, pl, ramNeeded, selfSend);
+			NTask nt = NTask(time_need, pl, ram_need, self_send);
 
 			//NS_LOG_INFO(toString() + " pushing NTask: " + nt.toString());
 			this->nTaskList.push_back(nt);
 		}
-
-
-		// remote_send(pl);
 	}
 
 	void startStep(std::string cycle_id, int affectedNodeIndex){
 		if (!running) return;
-		std::shared_ptr<ANode> affectedNode = allNodes->at(affectedNodeIndex);
-
-		Payload pl;
-		allNodes->at(affectedNodeIndex)->getNodeType();
-		switch(this->nodeType){
-		case R_NODE:
-			if (allNodes->at(affectedNodeIndex)->getNodeType() == L_NODE){
-				pl = Payload(affectedNode->getIndex(), allNodes->at(affectedNode->getParentIndex())->getIndex(), "", cycle_id, "1", "",affectedNodeIndex);
-			} else if (affectedNode->getNodeType() == I_NODE){
-				pl = Payload(0, affectedNode->getIndex(), "", cycle_id , "1", "",affectedNodeIndex);
-			} else {
-				NS_LOG_UNCOND("R Node targeting itself is not allowed when starting a Cycle. ");
-				return;
-			}
-			break;
-		case I_NODE:
-			if (affectedNode->getNodeType() == L_NODE){
-				pl = Payload(affectedNode->getIndex(), index, "", cycle_id, "1", "",affectedNodeIndex);
-			} else {
-				pl = Payload(0, index, "",cycle_id,"1", "", affectedNodeIndex);
-			}
-			break;
-		case L_NODE:
-			pl = Payload(index, 0, "", cycle_id, "1", "",affectedNodeIndex);
-			break;
-
-		default:
-			NS_LOG_UNCOND(id + " cant recognize NodeType: " + this->getNodeTypeString());
+		if (wTaskMap.count(affectedNodeIndex) != 0){
+			NS_LOG_DEBUG("Cannot Start a new Cycle if a Cycle with the same affected node is already running");
 			return;
-			break;
 		}
+
+		m->try_lock();
+		std::shared_ptr<ANode> aff_node = allNodes->at(affectedNodeIndex);
+		Payload pl = Payload(nextId++, cycle_id, 1, affectedNodeIndex);
+
 		int wt_retry_time = (int)metaData.getData("WTASK_WAITTIME_SEED");
 		int maxTries = metaData.getData("MAX_TRIES");
 		float retry_time = intRand(wt_retry_time, wt_retry_time*2);
+
+		WTask temp = WTask(retry_time, maxTries, pl);
+		wTaskMap.insert(std::pair<int, WTask>(affectedNodeIndex, temp));
+		calcStep(pl);
+		m->unlock();
+	}
+
+	void finishWTask(int aff_node){
+		std::map<int, WTask>::iterator it;
+		it = wTaskMap.find(aff_node);
+		if (it == wTaskMap.end()){
+			NS_LOG_UNCOND(toString() + " didnt have a WTask waiting for " + std::to_string(aff_node));
+			return;
+		}
+
 		m->try_lock();
+		WTask wt = it->second;
+		std::string cycle_id = wt.getCycleId();
+
 		if (cycle_id.find("create") != std::string::npos){
-			if (!wTask_create){
-				wTask_create.reset(new WTask(retry_time, maxTries, pl, affectedNodeIndex));
-				// wTask_create = new WTask(retry_time, maxTries, pl, affectedNodeIndex);
-				NS_LOG_UNCOND(toString() + " starts create");
-				calcStep(pl);
+			secret->setSecret(true);
+			if (nodeType == L_NODE){
+				secret->setExpire(intRand(60,1800));
+			} else {
+				secret->setExpire(100000);
 			}
+			NS_LOG_UNCOND(toString() + " got a Secret");
+			wt.getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
+			saveCycleFinish(getUnix(), id, nodeType, CREATED, "Node got Secret", wt.getTimeSuccess(), wt.getTries());
+
+		} else if(cycle_id.compare("expire_revoke") == 0) {
+			wt.getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
+			saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wt.getTimeSuccess(), wt.getTries());
+			NS_LOG_UNCOND(toString() + " revoked/expired Secret");
+			allNodes->at(aff_node)->getSecret()->expireMe(getUnix());
+
 		} else if (cycle_id.find("validate") != std::string::npos){
-			if (!wTask_validate){
-				wTask_validate.reset(new WTask(retry_time, maxTries, pl, affectedNodeIndex));
-				NS_LOG_UNCOND(toString() + " starts cycle validate");
-				calcStep(pl);
 
-			}
-		} else if (cycle_id.compare("expire_revoke") == 0){
-			if (!wTask_expire_revoke){
-				wTask_expire_revoke.reset(new WTask(retry_time, maxTries, pl, affectedNodeIndex));
-				NS_LOG_UNCOND(toString() + " starts cycle expire_revoke");
-				calcStep(pl);
-			}
 		}
+
+		wTaskMap.erase(it);
 		m->unlock();
 
-		/*
-		m->lock();
-		std::unique_ptr<WTask> wt(new WTask(affectedNode->getId(), maxTries, cycle_id, wt_id, intRand(wt_retry_time, wt_retry_time * 2), pl));
-		this->wTaskList.push_back(std::move(wt));
-		m->unlock();
-		*/
-		//saveEvent(getUnix(), getId(), getNodeType(), INFO, "Waittask created: " + wt_id);
-
-		// calcStep(pl);
-	}
-	/*
-	void finishWTask2(std::string cycle){
-		if (cycle.find("create") != std::string::npos){
-			m->try_lock();
-			if (wTask_create){
-				secret->setSecret(true);
-				if (nodeType == L_NODE){
-					secret->setExpire(intRand(60,1800));
-				} else {
-					secret->setExpire(100000);
-				}
-				NS_LOG_UNCOND(toString() + " got a Secret");
-				wTask_create->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
-				saveCycleFinish(getUnix(), id, nodeType, CREATED, "Node got Secret", wTask_create->getTimeSuccess(), wTask_create->getTries());
-				wTask_create.reset();
-			}
-			m->unlock();
-			return;
-		}
-		if (cycle.compare("expire_revoke") == 0){
-			m->try_lock();
-			if (wTask_expire_revoke){
-				int affectedNodeIndex = wTask_expire_revoke->getAffectedNodeIndex();
-				wTask_expire_revoke->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
-				// allNodes->at(wTask_expire_revoke->getAffectedNodeIndex())->getSecret().setSecret(false);
-				saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wTask_expire_revoke->getTimeSuccess(), wTask_expire_revoke->getTries());
-				NS_LOG_UNCOND(toString() + " revoked/expired Secret");
-				allNodes->at(affectedNodeIndex)->getSecret()->expireMe(getUnix());
-				wTask_expire_revoke.reset();
-			}
-			m->unlock();
-			return;
-		}
-		if (cycle.find("validate") != std::string::npos){
-			m->try_lock();
-			if (wTask_validate){
-				bool resetTask = true;
-				int affectedNodeIndex = wTask_validate->getAffectedNodeIndex();
-				std::string val = allNodes->at(affectedNodeIndex)->getSecret()->validStringAndExpireIfRevoked();
-				std::string msg = toString() + " Validated Node:  " + cycle + " " + allNodes->at(affectedNodeIndex)->toString() + " " + val;
-				wTask_validate->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
-				saveCycleFinish(getUnix(), id, nodeType, VALIDATED, msg, wTask_validate->getTimeSuccess(), wTask_validate->getTries());
-				NS_LOG_UNCOND(msg);
-				wTask_validate.reset();
-
-				bool succ = allNodes->at(affectedNodeIndex)->getSecret()->hasSecret();
-				std::map<int, NodeData>::iterator it;
-				it = allNodeData.find(affectedNodeIndex);
-				if (succ && it == allNodeData.end()){
-					NodeData temp = NodeData();
-					it = allNodeData.insert(std::pair<int, NodeData>(affectedNodeIndex, temp)).first;
-				}
-
-				if (succ){
-					if (cycle.find("Ident") != std::string::npos){
-						it->second.ident = true;
-						it->second.lastCheck = getUnix();
-						if (!(it->second.ke)){
-							validate2(affectedNodeIndex, "validate_KE");
-							resetTask = false;
-						}
-					} else {
-						it->second.ke = true;
-					}
-				} else {
-					allNodeData.erase(it);
-				}
-				if (resetTask) wTask_validate.reset();
-			}
-			m->unlock();
-			return;
-		}
-	}
-*/
-
-	void finishWTask(std::string cycle){
-		if (cycle.find("create") != std::string::npos){
-			m->try_lock();
-			if (wTask_create){
-				secret->setSecret(true);
-				if (nodeType == L_NODE){
-					secret->setExpire(intRand(60,1800));
-				} else {
-					secret->setExpire(100000);
-				}
-				NS_LOG_UNCOND(toString() + " got a Secret");
-				wTask_create->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
-				saveCycleFinish(getUnix(), id, nodeType, CREATED, "Node got Secret", wTask_create->getTimeSuccess(), wTask_create->getTries());
-				wTask_create.reset();
-			}
-			m->unlock();
-			return;
-		}
-		if (cycle.compare("expire_revoke") == 0){
-			m->try_lock();
-			if (wTask_expire_revoke){
-				int affectedNodeIndex = wTask_expire_revoke->getAffectedNodeIndex();
-				wTask_expire_revoke->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
-				// allNodes->at(wTask_expire_revoke->getAffectedNodeIndex())->getSecret().setSecret(false);
-				saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wTask_expire_revoke->getTimeSuccess(), wTask_expire_revoke->getTries());
-				NS_LOG_UNCOND(toString() + " revoked/expired Secret");
-				allNodes->at(affectedNodeIndex)->getSecret()->expireMe(getUnix());
-				wTask_expire_revoke.reset();
-			}
-			m->unlock();
-			return;
-		}
-		if (cycle.find("validate") != std::string::npos){
-			m->try_lock();
-			if (wTask_validate){
-				int affectedNodeIndex = wTask_validate->getAffectedNodeIndex();
-				std::string val = allNodes->at(affectedNodeIndex)->getSecret()->validStringAndExpireIfRevoked();
-				std::string msg = toString() + " Validated Node:  " + cycle + " " + allNodes->at(affectedNodeIndex)->toString() + " " + val;
-				wTask_validate->getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
-				saveCycleFinish(getUnix(), id, nodeType, VALIDATED, msg, wTask_validate->getTimeSuccess(), wTask_validate->getTries());
-				NS_LOG_UNCOND(msg);
-				wTask_validate.reset();
-			}
-			m->unlock();
-			return;
-		}
 	}
 
 
 	void remote_send(Payload pl){
 		std::string payload = pl.genPayloadString();
-
-		// Ptr<Packet> pkt = Create<Packet>(10);
 		Ptr<Packet> pkt = Create<Packet>(reinterpret_cast<const uint8_t*> (payload.c_str()),payload.size());
-
-		//this->send_sock->Connect(pl.getNextReceipt());
-		//this->send_sock->Send(pkt);
 		this->send_sock->SendTo(pkt, 0, pl.getNextReceipt());
-		// NS_LOG_UNCOND(toString() + " Sent now: " + pl.to_string());
 	}
 
 
@@ -826,51 +672,41 @@ public:
 		int receiver_index = -1;
 		switch (this->nodeType){
 		case R_NODE:
-			if (switchChar == 'p'){
-				NS_LOG_INFO("Cannot Send from R_Node to Parent (Would be self Send)");
+			if (switchChar != 's'){
+				NS_LOG_UNCOND(toString() + " is not allowed to send to p/a/r");
 				throw("R_Node is self Parent");
-			} else if (switchChar == 'a'){
-				throw("R_Node cannot send to a");
 			}
-			if (pl.i_source_id.compare("0") == 0){
-				receiver_index = std::stoi(pl.leaf_source_id);
-			} else {
-				receiver_index = std::stoi(pl.i_source_id);
-			}
-
+			receiver_index = pl.getLastSourceIndex();
 			break;
 		case I_NODE:
+			if (switchChar == 'a' || switchChar == 'r'){
+				NS_LOG_UNCOND(toString() + " is not allowed to send to a/r (For r use p)");
+				throw("I_Node wrong SendTo");
+			}
 			if (switchChar == 'p'){
 				receiver_index = this->parentIndex;
-				if (pl.i_source_id.compare("0") == 0) pl.i_source_id = std::to_string(index);
+				pl.addSource(index);
 			} else if (switchChar == 's') {
-				receiver_index = std::stoi(pl.leaf_source_id);
-			} else {
-				throw ("I_Node cannot send to a");
+				receiver_index = pl.getLastSourceIndex();
+				pl.remSource(index);
 			}
 			break;
 		case L_NODE:
 			if (switchChar == 'p'){
 				receiver_index = this->parentIndex;
 			} else if (switchChar == 'a'){
-				if (wTask_validate){
-					receiver_index = wTask_validate->getAffectedNodeIndex();
-				} else {
-					throw ("There is no wTask_Validate active to send to a");
-				}
+				receiver_index = pl.getAffectedNode();
+				pl.addSource(index);
 			} else if (switchChar == 's'){
-				if (!(pl.leaf_source_id.empty())){
-					receiver_index = std::stoi(pl.leaf_source_id);
-				} else {
-					throw ("Leaf Node cannot send to Sender if no leaf source id is set");
-				}
+				receiver_index = pl.getLastSourceIndex();
+				pl.remSource(index);
 			} else if (switchChar == 'r'){
 					receiver_index = 0;
 			}
 			break;
 		}
 
-		if (index <0){
+		if (index < 0){
 			NS_LOG_UNCOND("No index found in getReceiverAddress");
 			throw("No Index found");
 		}
@@ -901,39 +737,14 @@ public:
 
 	void workOnNode(int affected_node){
 		sec_ticks++;
-		if (wTask_validate) return;
-		if (!(secret->hasSecret())) return;
-		std::map<int, NodeData>::iterator it;
-		it = allNodeData.find(affected_node);
-		if (it != allNodeData.end()){
-			// Found the Node.
-			if (!(it->second.ident)){
-				validate(it->first, "validate_Ident");
-			} else if (!(it->second.ke)){
-				validate(it->first, "validate_KE");
-			} else {
-				if (it->second.checkNew()){
-					validate(it->first, "validate_Ident");
-				} else {
-					return;
-				}
-			}
-		} else {
-			validate(affected_node, "validate_Ident");
-		}
+		// TODO - Implement;
 	}
 	/*
 	void validate2(int affected_node_index, std::string valCycle){
 		this->startStep(valCycle, affected_node_index);
 	}*/
 
-	void validate(int affected_node_index, std::string valCycle){
-		if (secret->hasSecret()){
-			if (!wTask_validate){
-				this->startStep(valCycle, affected_node_index);
-			}
-		}
-	}
+
 
 	void addNTask(NTask nt){
 		this->nTaskList.push_back(nt);

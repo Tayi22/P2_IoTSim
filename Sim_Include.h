@@ -67,86 +67,100 @@ struct JsonRead{
 		srand (time(NULL));
 	}
 
-	// Returns the String used to find the actual multiplier in the MetaData of the Node
-	// If "0" then no general Multiplier is used
-
-	std::string getMultiplierString(std::string c, std::string s){
-		return jo[c][s]["multiplier"];
-	}
-
-	int getCondition(std::string c, std::string s, std::string &con){
+	int getCondition(std::string c, std::string s, std::string& con){
 		try{
 			con = jo[c][s]["condition"];
 		} catch (...){
-			con = "";
-			return 1;
+			return -1;
 		}
 		return 0;
 	}
 
-	float getTime(std::string c, std::string s){
-		return (float)(jo[c][s]["time"]);
-	}
 
-	void getNextStepCondition(std::string c, std::string s, int &retNextStep, std::string &retSendTo, bool con){
-		json options = jo[c][s]["step_on_succ"];
-
-		auto it = options.begin();
-		if (!con) it++;
-		json option = *it;
-
-		retNextStep = option["nextStep"];
-		retSendTo = option["sendTo"];
-		return;
-	}
-
-	void getNextStep(std::string c, std::string s, int &retNextStep, std::string &retSendTo){
-		// Get all aviable options from the step_on_succ Object.
-		json options;
+	int getNextStep(std::string c, std::string s, int option, int& nextStep, std::string& sendTo){
+		json next_step;
 		try{
-			options = jo[c][s]["step_on_succ"];
+			next_step = jo[c][s]["next_step"];
 		} catch (...){
-			retNextStep = -1;
-			retSendTo = "o";
-			return;
-		}
-		srand (time(NULL));
-		int r = rand() % 100 + 1;
-		int chance = 0;
-		json option;
-
-		if (options.begin() == options.end()){
-			retNextStep = -1;
-			retSendTo = "o";
-			return;
+			nextStep = -1;
+			sendTo = "";
+			return 0;
 		}
 
-		for (auto it = options.begin(); it != options.end(); it++){
-			// Set to a single option
-			option = *it;
-			// Extract the Chance threshold
-			chance = option["chance"];
+		std::string opt = "Option_" + std::to_string(option);
+		nextStep = next_step[opt]["nextStep"];
+		sendTo = next_step[opt]["sendTo"];
 
-			// Check if r is lower then threshold, if so, return that step
-			if (r <= chance){
-				retNextStep = option["nextStep"];
-				retSendTo = option["sendTo"];
-				return;
+		return 0;
+	}
+
+	int getDeadPayloadSize(std::string c, std::string s, int num_revoke_cert){
+		json payload;
+		int payloadSize = 1;
+		try{
+			payload = jo[c][s]["payload"];
+			payloadSize = payload["size"];
+			std::string mult = payload["mult_with"];
+			if (mult.compare("num_revo_cert") == 0) payloadSize *= num_revoke_cert;
+		} catch (...){
+			return -1;
+		}
+
+		return payloadSize;
+	}
+
+	int getStorageData(std::string c, std::string s, int& crl, int& key, int& cert){
+		json storage;
+		try{
+			storage = jo[c][s]["storage"];
+		} catch (...){
+			return -1;
+		}
+
+		try{
+			crl += storage["crl"];
+			if (crl < 0) crl = 0;
+			key += storage["key"];
+			if (key < 0) key = 0;
+			cert += storage["cert"];
+			if (cert < 0) cert = 0;
+		} catch (...){
+			throw "Storage was defined but crl, key or cert is missing";
+		}
+		return 0;
+	}
+
+	int getTimeRam(std::string c, std::string s, float& time, int& ram){
+		json data = jo[c][s];
+		time = data["time"];
+		ram = data["ram_strain"];
+		return 0;
+	}
+
+	int getAccTime(std::string c, std::string s, float& accTime, int num_revo){
+		std::string type;
+		try{
+			type = jo[c][s]["check_revoke_list"];
+			if (type.compare("OSCP") == 0){
+				accTime = single_data_access * log10(num_revo);
+			} else if (type.compare("CRL") == 0){
+				accTime = single_data_access * num_revo;
 			}
+		} catch (...){
+			return -1;
 		}
-		// This should not happen
-		throw "No Next step found. Check Json";
+		return 0;
 	}
 
-	int getDeadPayloadSize(std::string c, std::string s, int mult){
-		int payloadSize = jo[c][s]["dead_payload"];
+	int checkvalid(std::string c, std::string s, bool& shallCheck){
 		try{
-			jo[c][s]["mult_revoked"];
-			payloadSize *= mult;
+			shallCheck = jo[c][s]["check_valid_aff"];
+		} catch (const char* msg){
+			throw(msg);
 		} catch (...){
-
+			return -1;
 		}
-		return jo[c][s]["dead_payload"];
+		return 0;
 	}
 
 	int getAddCert(std::string c, std::string s){
