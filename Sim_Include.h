@@ -86,7 +86,7 @@ struct JsonRead{
 			sendTo = next_step[opt]["sendTo"];
 		} catch (...){
 			nextStep = -1;
-			sendTo = "";
+			sendTo = "e";
 			return 0;
 		}
 		return 0;
@@ -165,26 +165,6 @@ struct JsonRead{
 		}
 		return 0;
 	}
-
-	int getAddCert(std::string c, std::string s){
-		try{
-			return jo[c][s]["add_cert"];
-		} catch (...){
-			return 0;
-		}
-	}
-
-	int getCrlStorage(std::string c, std::string s, int n){
-		int crl_storage;
-		try{
-			crl_storage = jo[c][s]["crl_storage"];
-			crl_storage *= n;
-		} catch (...){
-			crl_storage = 0;
-		}
-		return crl_storage;
-	}
-
 
 };
 

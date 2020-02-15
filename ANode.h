@@ -35,7 +35,6 @@ private:
 
 	struct NodeData{
 		bool isValid;
-		bool hasCrl;
 		int lastCheck;
 
 
@@ -162,6 +161,8 @@ private:
 	int ms_over_count;
 	int ms_under_count;
 	int num_revoked_cert;
+	bool hasCrl;
+
 
 	long unsigned int cpu_ticks;
 	float sec_ticks;
@@ -336,7 +337,7 @@ private:
 			wTask_status = it->second.check();
 
 			if (wTask_status == 1){
-				NS_LOG_UNCOND(toString() + " Retry Create");
+				NS_LOG_UNCOND(toString() + " Retry " + it->second.getPl().cycle_id);
 				calcStep(it->second.getPl());
 			} else if (wTask_status == 2){
 				if (nodeType == L_NODE){
@@ -352,14 +353,7 @@ private:
 	int checkCondition(std::string con, int aff_node){
 		if (con.empty()) return 1;
 		if (con.compare("has_Crl") == 0){
-			std::map<int, NodeData>::iterator it;
-			it = allNodeData.find(aff_node);
-			if (it == allNodeData.end()){
-				return 1;
-			}
-			if (it->second.hasCrl){
-				return 2;
-			}
+			if (hasCrl) return 2;
 			return 1;
 		}
 
@@ -404,8 +398,6 @@ private:
 			return "Not Know";
 		}
 	}
-
-
 
 	void saveNTaskFinish(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime, float cpu, int running_NT, int storage, int max_storage, int ram, int max_ram){
 		if (es){
@@ -459,6 +451,7 @@ public:
 			{
 				this->secret.reset(new Secret());
 				this->secret->waitForCreate = wait_to_create_again;
+				hasCrl = false;
 				setupSockets();
 				// this->nodeThread = Create<SystemThread>(MakeCallback(&ANode::loop, this));
 				// startThread();
@@ -471,6 +464,7 @@ public:
 
 	~ANode(){
 		this->nTaskList.clear();
+		this->wTaskMap.clear();
 		this->send_sock->Close();
 		this->recv_sock->Close();
 	}
@@ -478,7 +472,12 @@ public:
 
 	void calcStep(Payload pl){
 		if (!running) return;
-		NS_LOG_INFO(toString() + " working on: " + pl.toString());
+		int current_step = std::stoi(pl.step_num);
+		if (current_step == -1){
+			finishWTask(pl.getAffectedNode());
+			return;
+		}
+
 
 		if (nodeType == I_NODE){
 			if (!secret->hasSecret()){
@@ -489,7 +488,7 @@ public:
 			}
 		}
 
-		NS_LOG_UNCOND(toString() + "working on " + pl.toString());
+		NS_LOG_UNCOND(toString() + " working on: " + pl.toString());
 
 		float time_need;
 		int ram_need;
@@ -569,11 +568,11 @@ public:
 		pl.setStepNum(std::to_string(nextStep));
 		InetSocketAddress receipt = "1.1.1.1";
 
-		if (nextStep == -1){
+		if (current_step == -1){
 			finishWTask(pl.getAffectedNode());
 		} else {
 			char switchChar = sendTo[0];
-			if (switchChar == 't'){
+			if (switchChar == 't' || switchChar == 'e'){
 				self_send = true;
 			} else if (switchChar == 's' || switchChar == 'p' || switchChar == 'a' || switchChar == 'r'){
 				try{
@@ -611,6 +610,7 @@ public:
 		float retry_time = intRand(wt_retry_time, wt_retry_time*2);
 
 		WTask temp = WTask(retry_time, maxTries, pl);
+		NS_LOG_UNCOND(toString() + " starting " + cycle_id);
 		wTaskMap.insert(std::pair<int, WTask>(affectedNodeIndex, temp));
 		calcStep(pl);
 		m->unlock();
@@ -620,7 +620,7 @@ public:
 		std::map<int, WTask>::iterator it;
 		it = wTaskMap.find(aff_node);
 		if (it == wTaskMap.end()){
-			NS_LOG_UNCOND(toString() + " didnt have a WTask waiting for " + std::to_string(aff_node));
+			NS_LOG_UNCOND(toString() + " didnt have a WTask waiting for " + std::to_string(aff_node) + ". Check if the Lifecycle ends on the same node that started it");
 			return;
 		}
 
@@ -631,7 +631,7 @@ public:
 		if (cycle_id.find("create") != std::string::npos){
 			secret->setSecret(true);
 			if (nodeType == L_NODE){
-				secret->setExpire(intRand(60,1800));
+				secret->setExpire(intRand(60,180));
 			} else {
 				secret->setExpire(100000);
 			}
@@ -644,9 +644,10 @@ public:
 			saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wt.getTimeSuccess(), wt.getTries());
 			NS_LOG_UNCOND(toString() + " revoked/expired Secret");
 			allNodes->at(aff_node)->getSecret()->expireMe(getUnix());
+			hasCrl = false;
 
 		} else if (cycle_id.find("validate") != std::string::npos){
-
+			// Set hasCrl to true.
 		}
 
 		wTaskMap.erase(it);
@@ -681,8 +682,8 @@ public:
 				receiver_index = this->parentIndex;
 				pl.addSource(index);
 			} else if (switchChar == 's') {
-				receiver_index = pl.getLastSourceIndex();
 				pl.remSource(index);
+				receiver_index = pl.getLastSourceIndex();
 			}
 			break;
 		case L_NODE:
@@ -731,28 +732,26 @@ public:
 	}
 
 	void workOnNode(int affected_node){
-		sec_ticks++;
+		if (!running) return;
+		if (!secret->hasSecret()) return;
+		std::map<int, WTask>::iterator it;
+		it = wTaskMap.find(affected_node);
+		if (it != wTaskMap.end()) return;
+
+		m->try_lock();
+		std::map<int, >
+		startStep("validate", affected_node);
+		m->unlock();
+
 		// TODO - Implement;
 	}
-	/*
-	void validate2(int affected_node_index, std::string valCycle){
-		this->startStep(valCycle, affected_node_index);
-	}*/
-
 
 
 	void addNTask(NTask nt){
 		this->nTaskList.push_back(nt);
 	}
 
-	/*
-	void stopThread(){
-		if (running){
-			running = false;
-			this->nodeThread->Join();
-		}
-	}
-	*/
+
 	void killNode(std::string msg = "killed"){
 		if (running){
 			running = false;
@@ -828,8 +827,6 @@ public:
 	void plus_revoked(){
 		num_revoked_cert++;
 	}
-
-
 
 };
 

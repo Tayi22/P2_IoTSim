@@ -98,18 +98,7 @@
         "key": 0,
         "cert": 1500,
         "crl": 0
-      },
-      "next_step": {
-        "Option_1": {
-          "nextStep": 6,
-          "sendTo": "t"
-        }
       }
-    },
-    "6": {
-      "name": "Finish",
-      "ram_strain": 1,
-      "time": 1
     }
   },
   "create_I": {
@@ -181,18 +170,7 @@
         "key": 0,
         "cert": 1000,
         "crl": 0
-      },
-      "next_step": {
-        "Option_1": {
-          "nextStep": 6,
-          "sendTo": "t"
-        }
       }
-    },
-    "6": {
-      "name": "Finish",
-      "ram_strain": 1,
-      "time": 1
     }
   },
   "expire_revoke": {
@@ -270,7 +248,7 @@
     "5": {
       "name": "Finish",
       "ram_strain": 1,
-      "time": 3
+      "time": 1
     }
   }
 }

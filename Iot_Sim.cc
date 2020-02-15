@@ -6,14 +6,6 @@
  */
 
 
-/*
- * Information to INode:
- * INodes sendTo1 sends Data to Root Node
- * INodes sendTo2 sends Data to Leaf Node
- * LNodes sendTo1 sends Data to Intermediant Node
- * RNotes sendTo1 sends Data to Intermediant Node
- */
-
 #include "Sim_Include.h"
 
 
@@ -21,9 +13,9 @@ using namespace ns3;
 using namespace std;
 
 const int RNN = 1;
-int INN = 5;
-int LNPIN = 10;
-int runTime = 180;
+int INN = 1;
+int LNPIN = 2;
+int runTime = 1800;
 int endSimInterval = 10;
 int NN;
 const int identitySize = 5;

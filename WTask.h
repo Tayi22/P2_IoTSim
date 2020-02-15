@@ -73,30 +73,6 @@ public:
 		}
 		return 0;
 
-
-/*
-		system_clock::time_point cur = system_clock::now();
-		float time_between_checks = duration_cast<milliseconds>(cur - last_update).count();
-		if (time_between_checks < 1) return 0;
-
-		last_update = cur;
-		passed_time += time_between_checks;
-		time_alive += time_between_checks;
-
-		if (passed_time > max_time){
-			retries++;
-			retry_alive++;
-			if (retries > max_retries){
-				retries = 0;
-				passed_time = 0;
-				return 2;
-			}
-			passed_time = 0;
-			return 1;
-		}
-		return 0;
-		*/
-
 	}
 
 	std::string getCycleId() const {

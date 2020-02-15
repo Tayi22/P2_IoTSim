@@ -77,7 +77,7 @@ public:
 
 		size_t pos = source_indices.find_last_of("-");
 		if (pos == std::string::npos){
-			source_indices = "";
+			if (node_index == std::stoi(source_indices)) source_indices = "";
 		} else {
 			int lastIndex = std::stoi(source_indices.substr(pos+1));
 			if (node_index == lastIndex) source_indices = source_indices.substr(0, pos);
