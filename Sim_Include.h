@@ -107,7 +107,7 @@ struct JsonRead{
 		return payloadSize;
 	}
 
-	int getStorageData(std::string c, std::string s, int& crl, int& key, int& cert){
+	int getStorageData(std::string c, std::string s, int& crl, int& key, int& cert, int num_revo_cert){
 		json storage;
 		try{
 			storage = jo[c][s]["storage"];
@@ -119,6 +119,7 @@ struct JsonRead{
 
 		try{
 			int tempCrl = storage["crl"];
+			tempCrl *= num_revo_cert;
 			int tempKey = storage["key"];
 			int tempCert = storage["cert"];
 			crl += tempCrl;

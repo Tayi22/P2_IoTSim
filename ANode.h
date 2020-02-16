@@ -169,6 +169,8 @@ private:
 
 	std::map<int, NodeData> allNodeData;
 
+	const int sym_key_length = 16;
+
 
 // Methods:
 
@@ -177,6 +179,13 @@ private:
 	    if (!generator) generator = new mt19937(clock() + std::stoi(id));
 	    uniform_int_distribution<int> distribution(min, max);
 	    return distribution(*generator);
+	}
+
+	int getCurrentStorage(){
+		int stor = this->wTaskMap.size() * sym_key_length;
+		stor += storage_data.cert;
+		stor += storage_data.crl;
+		return stor;
 	}
 
 
@@ -304,7 +313,7 @@ private:
 					} else {
 						this->remote_send(pl);
 					}
-					saveNTaskFinish(getUnix(), getId(), nodeType, NTASK_FINISH, it->toString(), (int)nTaskTime, sec_ticks/cpu_ticks, nTaskList.size(), storage_data.getStorage(), maxStorage, ram_need, maxRam);
+					saveNTaskFinish(getUnix(), getId(), nodeType, NTASK_FINISH, it->toString(), (int)nTaskTime, sec_ticks/cpu_ticks, nTaskList.size(), getCurrentStorage(), maxStorage, ram_need, maxRam);
 					nTaskList.erase(it++);
 				} else {
 					it++;
@@ -520,7 +529,7 @@ public:
 
 		// Get Information about the storage usage (cert, crl, key). If no storage field is specified -> No Problem. If a storage field is specified but an element is missing it creates a critical Error
 		try{
-			jsonRead->getStorageData(pl.cycle_id, pl.step_num, storage_data.crl, storage_data.key, storage_data.cert);
+			jsonRead->getStorageData(pl.cycle_id, pl.step_num, storage_data.crl, storage_data.key, storage_data.cert, num_revoked_cert_temp);
 		} catch (...){
 			NS_LOG_UNCOND(pl.toString() + " does include Storage but is missing crl, key or cert field");
 			throw ("Critical error in Simulation in getStorageData from calcStep");
