@@ -26,8 +26,7 @@
           "sendTo": "t"
         }
       }
-    },
-    "type": "OCSP"
+    }
   },
   "create_L": {
     "1": {
@@ -249,6 +248,195 @@
       "name": "Finish",
       "ram_strain": 1,
       "time": 1
+    }
+  },
+  "validate": {
+    "1": {
+      "name": "Request Cert",
+      "ram_strain": 1,
+      "time": 1,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "a"
+        }
+      }
+    },
+    "2": {
+      "name": "Sending Cert",
+      "ram_strain": 144,
+      "time": 10,
+      "payload": {
+        "size": 1500,
+        "mult_with": 1
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "s"
+        }
+      }
+    },
+    "3": {
+      "name": "Check Root Cert",
+      "ram_strain": 144,
+      "time": 42,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "t"
+        }
+      }
+    },
+    "4": {
+      "name": "Is Valid Root Cert",
+      "ram_strain": 1,
+      "time": 1,
+      "check_valid_aff": true,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 5,
+          "sendTo": "t"
+        }
+      }
+    },
+    "5": {
+      "name": "Check CRL",
+      "ram_strain": 144,
+      "time": 10,
+      "condition": "has_Crl",
+      "next_step": {
+        "Option_1": {
+          "nextStep": 6,
+          "sendTo": "t"
+        },
+        "Option_2": {
+          "nextStep": 0,
+          "sendTo": "t"
+        }
+      }
+    },
+    "6": {
+      "name": "Request CRL",
+      "ram_strain": 1,
+      "time": 1,
+      "storage": {
+        "key": 0,
+        "cert": 0,
+        "crl": -100
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 7,
+          "sendTo": "p"
+        }
+      }
+    },
+    "7": {
+      "name": "Send CRL",
+      "ram_strain": 96,
+      "time": 10,
+      "payload": {
+        "size": 100,
+        "mult_with": "num_revo_cert"
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 8,
+          "sendTo": "s"
+        }
+      }
+    },
+    "8": {
+      "name": "Save CRL",
+      "ram_strain": 96,
+      "time": 1,
+      "storage": {
+        "key": 0,
+        "cert": 0,
+        "crl": 100
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 9,
+          "sendTo": "t"
+        }
+      }
+    },
+    "9": {
+      "name": "Loop CRL",
+      "ram_strain": 100,
+      "time": 1,
+      "check_revoke_list": "CRL/OSCP",
+      "next_step": {
+        "Option_1": {
+          "nextStep": 10,
+          "sendTo": "t"
+        }
+      }
+    },
+    "10": {
+      "name": "Is not Revoked",
+      "ram_strain": 1,
+      "time": 1,
+      "check_valid_aff": true,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 11,
+          "sendTo": "t"
+        }
+      }
+    },
+    "11": {
+      "name": "Set Alice Context and send",
+      "ram_strain": 209,
+      "time": 372,
+      "storage": {
+        "key": -128,
+        "cert": 0,
+        "crl": 0
+      },
+      "payload": {
+        "size": 360,
+        "mult_with": 1
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 12,
+          "sendTo": "a"
+        }
+      }
+    },
+    "12": {
+      "name": "Setting Bob Context",
+      "ram_strain": 372,
+      "time": 209,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 13,
+          "sendTo": "t"
+        }
+      }
+    },
+    "13": {
+      "name": "Bob Read Alice Values and gen Secret",
+      "ram_strain": 116,
+      "time": 216,
+      "payload": {
+        "size": 116,
+        "mult_with": 1
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 14,
+          "sendTo": "s"
+        }
+      }
+    },
+    "14": {
+      "name": "Alice reading Bob and gen Key",
+      "ram_strain": 116,
+      "time": 218
     }
   }
 }
