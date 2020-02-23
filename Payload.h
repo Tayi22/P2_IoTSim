@@ -72,7 +72,7 @@ public:
 
 	void remSource(int node_index){
 		if (source_indices.empty()){
-			throw "Cannot remove a Source from an empty Source indices String";
+			return;
 		}
 
 		size_t pos = source_indices.find_last_of("-");

@@ -15,13 +15,13 @@ using namespace std;
 const int RNN = 1;
 int INN = 1;
 int LNPIN = 2;
-int runTime = 1800;
+int runTime = 180;
 int endSimInterval = 10;
 int NN;
 const int identitySize = 5;
 int id_num[identitySize] = {0};
 int maxMs = 500;
-int init_revoked_certs = 1000;
+int init_revoked_certs = 1;
 float single_data_access = 0.147;
 int wait_to_create_again = 10;
 
@@ -176,7 +176,7 @@ int main (int argc, char *argv[])
 			Simulator::Schedule(Seconds(i), &ANode::checkNode, n.get());
 		}
 	}
-	/*
+
 	int n1;
 	int n2;
 	int l1;
@@ -193,24 +193,13 @@ int main (int argc, char *argv[])
 			if (n1 != n2){
 				l1 = l_node_indicies.at(n1);
 				l2 = l_node_indicies.at(n2);
-
-				if (i % 2 == 0){
-					// Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_KE");
-					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_KE");
-					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_ECDH " + allNodes.at(l2)->toString());
-				} else {
-					Simulator::Schedule(Seconds(i), &ANode::validate, allNodes.at(l1).get(),l2, "validate_Ident");
-					NS_LOG_INFO("Scheduled Validate Starter: " + allNodes.at(l1)->toString() + " wants to validate_OCSP " + allNodes.at(l2)->toString());
-				}
-
 				Simulator::Schedule(Seconds(i), &ANode::workOnNode, allNodes.at(l1).get(), l2);
 				NS_LOG_INFO("Scheduled WorkOnNode. " + allNodes.at(l1)->toString() + " wants to get Data from " + allNodes.at(l2)->toString());
-
 			}
 		}
 
 	}
-	*/
+
 
 
 	for (auto n : allNodes) {

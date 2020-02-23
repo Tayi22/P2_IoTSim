@@ -18,7 +18,8 @@ int getUnix(){
 }
 
 // When a NodeData needs to be rechecked in Seconds.
-const int reCheck = 20;
+const int reCheck = 60;
+const int cert_size = 500;
 
 class ANode{
 private:
@@ -40,12 +41,14 @@ private:
 
 		NodeData(){
 			isValid = false;
-			hasCrl = false;
 			lastCheck = getUnix();
 		}
 
 		bool checkNew(){
-			if (getUnix() - lastCheck > reCheck) return true;
+			if (getUnix() - lastCheck > reCheck){
+				isValid = false;
+				return true;
+			}
 			return false;
 		}
 
@@ -93,13 +96,18 @@ private:
 
  			}
 
-			std::string validStringAndExpireIfRevoked(){
+			bool validStringAndExpireIfRevoked(std::string& msg){
 				if (revoked){
 					expiresAt = std::chrono::system_clock::now();
-					return "Revoked";
+					msg = "Revoked";
+					return false;
 				}
-				if (!secretBool) return "No Secret";
-				return "Valid";
+				if (!secretBool){
+					msg = "No Secret";
+					return false;
+				}
+				msg = "Valid";
+				return true;
 			}
 
 			void expireMe(int u){
@@ -362,7 +370,7 @@ private:
 	int checkCondition(std::string con, int aff_node){
 		if (con.empty()) return 1;
 		if (con.compare("has_Crl") == 0){
-			if (hasCrl) return 2;
+			// if (hasCrl) return 2;
 			return 1;
 		}
 
@@ -635,6 +643,7 @@ public:
 
 		m->try_lock();
 		WTask wt = it->second;
+		wt.getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
 		std::string cycle_id = wt.getCycleId();
 
 		if (cycle_id.find("create") != std::string::npos){
@@ -645,11 +654,9 @@ public:
 				secret->setExpire(100000);
 			}
 			NS_LOG_UNCOND(toString() + " got a Secret");
-			wt.getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
 			saveCycleFinish(getUnix(), id, nodeType, CREATED, "Node got Secret", wt.getTimeSuccess(), wt.getTries());
 
 		} else if(cycle_id.compare("expire_revoke") == 0) {
-			wt.getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
 			saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wt.getTimeSuccess(), wt.getTries());
 			NS_LOG_UNCOND(toString() + " revoked/expired Secret");
 			allNodes->at(aff_node)->getSecret()->expireMe(getUnix());
@@ -657,6 +664,27 @@ public:
 
 		} else if (cycle_id.find("validate") != std::string::npos){
 			// Set hasCrl to true.
+			hasCrl = true;
+			std::string msg;
+			bool valid = allNodes->at(aff_node)->getSecret()->validStringAndExpireIfRevoked(msg);
+
+			NS_LOG_UNCOND(toString() + " Validated Node: " + allNodes->at(aff_node)->toString() + " " + msg);
+			saveCycleFinish(getUnix(), id, nodeType, VALIDATED, msg, wt.getTimeSuccess(), wt.getTries());
+
+			std::map<int, NodeData>::iterator node_data_it;
+			node_data_it = allNodeData.find(aff_node);
+			if (valid){
+				if (node_data_it != allNodeData.end()){
+					node_data_it->second.isValid = true;
+					node_data_it->second.lastCheck = getUnix();
+				}
+			} else {
+				if (node_data_it != allNodeData.end()){
+					node_data_it->second.isValid = false;
+					node_data_it->second.lastCheck = getUnix();
+				}
+			}
+
 		}
 
 		wTaskMap.erase(it);
@@ -698,9 +726,11 @@ public:
 		case L_NODE:
 			if (switchChar == 'p'){
 				receiver_index = this->parentIndex;
+				pl.remSource(index);
 				pl.addSource(index);
 			} else if (switchChar == 'a'){
 				receiver_index = pl.getAffectedNode();
+				pl.remSource(index);
 				pl.addSource(index);
 			} else if (switchChar == 's'){
 				receiver_index = pl.getLastSourceIndex();
@@ -748,8 +778,21 @@ public:
 		if (it != wTaskMap.end()) return;
 
 		m->try_lock();
-		std::map<int, >
-		startStep("validate", affected_node);
+		std::map<int, NodeData>::iterator node_data_it;
+		node_data_it = allNodeData.find(affected_node);
+		if (node_data_it == allNodeData.end()){
+			NodeData temp = NodeData();
+			allNodeData.insert(std::pair<int, NodeData>(affected_node, temp));
+			startStep("validate", affected_node);
+		} else {
+			if (node_data_it->second.isValid){
+				if (node_data_it->second.checkNew()){
+					startStep("validate", affected_node);
+				}
+			} else {
+				startStep("validate", affected_node);
+			}
+		}
 		m->unlock();
 
 		// TODO - Implement;
@@ -771,6 +814,7 @@ public:
 
 	void revokeNode(){
 		NS_LOG_UNCOND(toString() + "got Revoked");
+
 		allNodes->at(0)->plus_revoked();
 		if (this->getSecret()->hasSecret()) this->getSecret()->setRevoked(true);
 	}
