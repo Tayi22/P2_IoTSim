@@ -28,16 +28,18 @@
       }
     }
   },
+  "const_data": {
+    "crl_entry_size": 100,
+    "asym_key_size": 32,
+    "sym_key_size": 128,
+    "session_key_recheck": 60,
+    "cert_size": 500
+  },
   "create_L": {
     "1": {
       "name": "Start",
       "ram_strain": 1,
       "time": 1,
-      "storage": {
-        "key": -32,
-        "cert": -1500,
-        "crl": 0
-      },
       "next_step": {
         "Option_1": {
           "nextStep": 2,
@@ -49,11 +51,6 @@
       "name": "Gen Key",
       "ram_strain": 2648,
       "time": 240,
-      "storage": {
-        "key": 32,
-        "cert": 0,
-        "crl": 0
-      },
       "next_step": {
         "Option_1": {
           "nextStep": 3,
@@ -92,12 +89,7 @@
     "5": {
       "name": "Save Cert",
       "ram_strain": 144,
-      "time": 10,
-      "storage": {
-        "key": 0,
-        "cert": 1500,
-        "crl": 0
-      }
+      "time": 10
     }
   },
   "create_I": {
@@ -105,11 +97,6 @@
       "name": "Start",
       "ram_strain": 1,
       "time": 1,
-      "storage": {
-        "key": -32,
-        "cert": -1000,
-        "crl": 0
-      },
       "next_step": {
         "Option_1": {
           "nextStep": 2,
@@ -121,11 +108,6 @@
       "name": "Gen Key",
       "ram_strain": 2648,
       "time": 120,
-      "storage": {
-        "key": 32,
-        "cert": 0,
-        "crl": 0
-      },
       "next_step": {
         "Option_1": {
           "nextStep": 3,
@@ -164,12 +146,7 @@
     "5": {
       "name": "Save Cert",
       "ram_strain": 144,
-      "time": 10,
-      "storage": {
-        "key": 0,
-        "cert": 1000,
-        "crl": 0
-      }
+      "time": 10
     }
   },
   "expire_revoke": {
@@ -177,11 +154,6 @@
       "name": "Expire on Me",
       "ram_strain": 144,
       "time": 3,
-      "storage": {
-        "key": 0,
-        "cert": -1500,
-        "crl": 0
-      },
       "payload": {
         "size": 100,
         "mult_with": 1
@@ -197,11 +169,6 @@
       "name": "Expire on I",
       "ram_strain": 144,
       "time": 3,
-      "storage": {
-        "key": 0,
-        "cert": -1000,
-        "crl": 0
-      },
       "payload": {
         "size": 100,
         "mult_with": 1
@@ -217,11 +184,6 @@
       "name": "Expire on R",
       "ram_strain": 144,
       "time": 3,
-      "storage": {
-        "key": 0,
-        "cert": -500,
-        "crl": 0
-      },
       "payload": {
         "size": 100,
         "mult_with": 1
@@ -280,7 +242,7 @@
     "3": {
       "name": "Check Root Cert",
       "ram_strain": 144,
-      "time": 42,
+      "time": 10,
       "next_step": {
         "Option_1": {
           "nextStep": 4,
@@ -301,73 +263,63 @@
       }
     },
     "5": {
-      "name": "Check CRL",
-      "ram_strain": 144,
+      "name": "Query OSCP Request",
+      "ram_strain": 1,
       "time": 10,
-      "condition": "has_Crl",
+      "payload": {
+        "size": 100,
+        "mult_with": 1
+      },
       "next_step": {
         "Option_1": {
           "nextStep": 6,
-          "sendTo": "t"
-        },
-        "Option_2": {
-          "nextStep": 8,
-          "sendTo": "t"
+          "sendTo": "r"
         }
       }
     },
     "6": {
-      "name": "Request CRL",
-      "ram_strain": 1,
+      "name": "Query OSCP",
+      "ram_strain": 69,
       "time": 1,
-      "storage": {
-        "key": 0,
-        "cert": 0,
-        "crl": -100
-      },
+      "check_revoke_list": "OSCP",
       "next_step": {
         "Option_1": {
           "nextStep": 7,
-          "sendTo": "p"
-        }
-      }
-    },
-    "7": {
-      "name": "Send CRL",
-      "ram_strain": 96,
-      "time": 10,
-      "payload": {
-        "size": 100,
-        "mult_with": "num_revo_cert"
-      },
-      "next_step": {
-        "Option_1": {
-          "nextStep": 8,
           "sendTo": "s"
         }
       }
     },
-    "8": {
-      "name": "Save CRL",
-      "ram_strain": 96,
+    "7": {
+      "name": "Check Valid",
+      "ram_strain": 1,
       "time": 1,
-      "storage": {
-        "key": 0,
-        "cert": 0,
-        "crl": 100
-      },
+      "check_valid_aff": true,
       "next_step": {
         "Option_1": {
-          "nextStep": 9,
+          "nextStep": 8,
           "sendTo": "t"
         }
       }
     },
+    "8": {
+      "name": "Set Alice Context and send",
+      "ram_strain": 209,
+      "time": 372,
+      "payload": {
+        "size": 360,
+        "mult_with": 1
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 9,
+          "sendTo": "a"
+        }
+      }
+    },
     "9": {
-      "name": "Loop CRL",
-      "ram_strain": 100,
-      "time": 1,
-      "check_revoke_list": "CRL/OSCP",
+      "name": "Setting Bob Context",
+      "ram_strain": 372,
+      "time": 209,
       "next_step": {
         "Option_1": {
           "nextStep": 10,
@@ -376,49 +328,6 @@
       }
     },
     "10": {
-      "name": "Is not Revoked",
-      "ram_strain": 1,
-      "time": 1,
-      "check_valid_aff": true,
-      "next_step": {
-        "Option_1": {
-          "nextStep": 11,
-          "sendTo": "t"
-        }
-      }
-    },
-    "11": {
-      "name": "Set Alice Context and send",
-      "ram_strain": 209,
-      "time": 372,
-      "storage": {
-        "key": -128,
-        "cert": 0,
-        "crl": 0
-      },
-      "payload": {
-        "size": 360,
-        "mult_with": 1
-      },
-      "next_step": {
-        "Option_1": {
-          "nextStep": 12,
-          "sendTo": "a"
-        }
-      }
-    },
-    "12": {
-      "name": "Setting Bob Context",
-      "ram_strain": 372,
-      "time": 209,
-      "next_step": {
-        "Option_1": {
-          "nextStep": 13,
-          "sendTo": "t"
-        }
-      }
-    },
-    "13": {
       "name": "Bob Read Alice Values and gen Secret",
       "ram_strain": 116,
       "time": 216,
@@ -428,12 +337,12 @@
       },
       "next_step": {
         "Option_1": {
-          "nextStep": 14,
+          "nextStep": 11,
           "sendTo": "s"
         }
       }
     },
-    "14": {
+    "11": {
       "name": "Alice reading Bob and gen Key",
       "ram_strain": 116,
       "time": 218

@@ -21,17 +21,26 @@ private:
 	int ramNeeded;
 	bool selfSend;
 	std::string sendToId;
+	int wt_id;
+	std::string curr_step;
+	int step_num;
 public:
 	NTask	(
 				float timeToComplete,
 				Payload pl,
 				int ramNeeded,
-				bool selfSend
+				bool selfSend,
+				int wt_id,
+				std::string cs,
+				int step_num
 			):
 				timeToComplete(timeToComplete),
 				pl(pl),
 				ramNeeded(ramNeeded),
-				selfSend(selfSend)
+				selfSend(selfSend),
+				wt_id(wt_id),
+				curr_step(cs),
+				step_num(step_num)
 			{
 				startedAt = system_clock::now();
 				lastUpdate = startedAt;
@@ -61,8 +70,6 @@ public:
 		return ramNeeded;
 	}
 
-
-
 	const Payload& getPl() const {
 		return pl;
 	}
@@ -72,8 +79,30 @@ public:
 	}
 
 	std::string toString(){
-		return "RamNeed:" + std::to_string(ramNeeded) + ", Time to complete:" + std::to_string(timeToComplete) + " Packet: " + pl.toString();
+		return "RamNeed:" + std::to_string(ramNeeded) + ", Time to complete:" + std::to_string(timeToComplete) + "StepNum: " + curr_step + " Packet: " + pl.toString();
 	}
+
+	std::string toStringShort(){
+		return pl.cycle_id + "_" + curr_step;
+	}
+
+	std::string getStepName(){
+		return curr_step;
+	}
+
+	std::string getCycleId(){
+		return pl.cycle_id;
+	}
+
+	const int& getWtId() const {
+		return wt_id;
+	}
+	
+	const int& getStepNum() const {
+		return step_num;
+	}
+
+	
 };
 
 

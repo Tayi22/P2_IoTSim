@@ -18,30 +18,21 @@ int getUnix(){
 }
 
 // When a NodeData needs to be rechecked in Seconds.
-const int reCheck = 60;
-const int cert_size = 500;
+// const int reCheck = 60;
 
 class ANode{
 private:
 
-	struct StorageData{
-		int key = 0;
-		int cert = 0;
-		int crl = 0;
-
-		int getStorage(){
-			return key + cert + crl;
-		}
-	};
-
 	struct NodeData{
 		bool isValid;
 		int lastCheck;
+		int reCheck;
 
 
-		NodeData(){
+		NodeData(int reCheck){
 			isValid = false;
 			lastCheck = getUnix();
+			this->reCheck = reCheck;
 		}
 
 		bool checkNew(){
@@ -170,17 +161,33 @@ private:
 	int ms_under_count;
 	int num_revoked_cert;
 	bool hasCrl;
+	int run_time;
 
 
 	long unsigned int cpu_ticks;
 	float sec_ticks;
 
 	std::map<int, NodeData> allNodeData;
+	int next_wt_id;
 
-	const int sym_key_length = 16;
+	int identity_size;
 
 
 // Methods:
+
+	int getNodeIndexFromWtId(int wt_id){
+		std::string temp = std::to_string(wt_id);
+		std::string ret = "";
+		int remNum = temp.size() - identity_size;
+		for (char& c : temp){
+			if (remNum > 0){
+				remNum--;
+			} else {
+				ret += c;
+			}
+		}
+		return std::stoi(ret);
+	}
 
 	int intRand(const int & min, const int & max){
 	    static thread_local mt19937* generator = nullptr;
@@ -190,10 +197,12 @@ private:
 	}
 
 	int getCurrentStorage(){
-		int stor = this->wTaskMap.size() * sym_key_length;
-		stor += storage_data.cert;
-		stor += storage_data.crl;
-		return stor;
+		std::map<int, NodeData>::iterator it;
+		int num_sym_keys = 0;
+		for(it = allNodeData.begin() ;it != allNodeData.end(); it++){
+			if (it->second.isValid) num_sym_keys++;
+		}
+		return storage_data.getStorage(num_sym_keys, allNodes->at(0)->getNumRevokedCert());
 	}
 
 
@@ -321,7 +330,9 @@ private:
 					} else {
 						this->remote_send(pl);
 					}
-					saveNTaskFinish(getUnix(), getId(), nodeType, NTASK_FINISH, it->toString(), (int)nTaskTime, sec_ticks/cpu_ticks, nTaskList.size(), getCurrentStorage(), maxStorage, ram_need, maxRam);
+					int num = getNodeIndexFromWtId(it->getWtId());
+					std::string startNodeType = allNodes->at(num)->getNodeTypeString();
+					saveNTaskFinish(getUnix(), getId(), nodeType, NTASK_FINISH, it->getCycleId(), (int)nTaskTime, sec_ticks/cpu_ticks, nTaskList.size(), ram_need, maxRam, it->getWtId(), it->getStepNum(), it->getStepName(),startNodeType);
 					nTaskList.erase(it++);
 				} else {
 					it++;
@@ -378,18 +389,7 @@ private:
 		throw "Condition not found";
 	}
 
-	std::string getNodeTypeString(){
-		switch (nodeType){
-		case R_NODE:
-			return "R_NODE";
-		case L_NODE:
-			return "L_NODE";
-		case I_NODE:
-			return "I_NODE";
-		default:
-			return "NO_NODE";
-		}
-	}
+
 	// enum EventType {INFO, CREATED, VALIDATED, ERROR, NTASK_FINISH, WTASK_FINISH, EXPIRED, REVOKED, PACKET_TRAVEL};
 	std::string getEventTypeString(EventType et){
 		switch (et){
@@ -416,27 +416,29 @@ private:
 		}
 	}
 
-	void saveNTaskFinish(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime, float cpu, int running_NT, int storage, int max_storage, int ram, int max_ram){
+	void saveNTaskFinish(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime, float cpu, int running_NT, int ram, int max_ram, int wt_id, int step_num, std::string step_name, std::string startNodeType){
 		if (es){
 			std::string nodeType_string = getNodeTypeString();
 			std::string eventType_string = getEventTypeString(eventType);
-			es->saveNTaskFinish(timestamp, nodeId, nodeType_string, eventType_string, event, completionTime, cpu, running_NT, storage, max_storage, ram, max_ram);
+			es->saveNTaskFinish(timestamp, nodeId, nodeType_string, eventType_string, event, completionTime, cpu, running_NT, ram, max_ram, wt_id, step_num, step_name, startNodeType);
 		}
 	}
 
-	void saveInfo(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event){
+	/*
+	void saveInfo(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int wt_id){
 		if (es){
 			std::string nodeType_string = getNodeTypeString();
 			std::string eventType_string = getEventTypeString(eventType);
-			es->saveInfo(timestamp, nodeId, nodeType_string, eventType_string, event);
+			es->saveInfo(timestamp, nodeId, nodeType_string, eventType_string, event, wt_id);
 		}
 	}
+	*/
 
-	void saveCycleFinish(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime, int tries){
+	void saveCycleFinish(int timestamp, string nodeId, NodeType nodeType, EventType eventType, string event, int completionTime, int tries, int storage, int max_storage, int wt_id){
 		if (es){
 			std::string nodeType_string = getNodeTypeString();
 			std::string eventType_string = getEventTypeString(eventType);
-			es->saveCycleFinish(timestamp, nodeId, nodeType_string, eventType_string, event, completionTime, tries);
+			es->saveCycleFinish(timestamp, nodeId, nodeType_string, eventType_string, event, completionTime, tries, storage, max_storage, wt_id);
 		}
 	}
 
@@ -453,7 +455,9 @@ public:
 				std::string metaDataPath,
 				std::shared_ptr<EventSerialize> es,
 				int maxMs,
-				int wait_to_create_again
+				int wait_to_create_again,
+				int run_time,
+				int identity_size
 			):
 				id(id),
 				index(index),
@@ -464,7 +468,9 @@ public:
 				jsonRead(jr),
 				metaDataPath(metaDataPath),
 				es(es),
-				maxMs(maxMs)
+				maxMs(maxMs),
+				run_time(run_time),
+				identity_size(identity_size)
 			{
 				this->secret.reset(new Secret());
 				this->secret->waitForCreate = wait_to_create_again;
@@ -476,7 +482,9 @@ public:
 				reasonOfDeath = "Natural";
 				running = true;
 				num_revoked_cert = 0;
+				storage_data = jr->getConstData();
 				NS_LOG_UNCOND(toString() + " created");
+				next_wt_id = 1;
 			}
 
 	~ANode(){
@@ -505,7 +513,8 @@ public:
 			}
 		}
 
-		NS_LOG_UNCOND(toString() + " working on: " + pl.toString());
+
+		NS_LOG_INFO(toString() + " working on: " + pl.toString());
 
 		float time_need;
 		int ram_need;
@@ -517,12 +526,20 @@ public:
 		int nextStep;
 		int option = 1;
 		std::string condition = "";
+		std::string step_name = "";
 
 		// Check of a Payload Size is specified and build a string with payloadsize bytes or 1.
 		int payload_size = jsonRead->getDeadPayloadSize(pl.cycle_id, pl.step_num, num_revoked_cert_temp);
 		if (payload_size < 0){
 			NS_LOG_DEBUG("No Payload in PL: " + pl.toString());
 			payload_size = 0;
+		}
+
+		try{
+			step_name = jsonRead->getStepName(pl.cycle_id, pl.step_num);
+		} catch (...){
+			NS_LOG_UNCOND(pl.toString()+ " doesnt include a Step Name. Check Lifecycle Json");
+			throw("Critical error in Simulation at getStepName");
 		}
 
 		std::string dead_payload(payload_size, '1');
@@ -536,6 +553,7 @@ public:
 		}
 
 		// Get Information about the storage usage (cert, crl, key). If no storage field is specified -> No Problem. If a storage field is specified but an element is missing it creates a critical Error
+		/* Commented due to constant data field insertion
 		try{
 			jsonRead->getStorageData(pl.cycle_id, pl.step_num, storage_data.crl, storage_data.key, storage_data.cert, num_revoked_cert_temp);
 		} catch (...){
@@ -543,6 +561,7 @@ public:
 			throw ("Critical error in Simulation in getStorageData from calcStep");
 			return;
 		}
+		*/
 
 		// Get Additional Time to access data.
 		if (jsonRead->getAccTime(pl.cycle_id, pl.step_num, time_data_access, num_revoked_cert_temp) < 0){
@@ -604,7 +623,7 @@ public:
 			}
 
 			pl.setNextReceipt(receipt);
-			NTask nt = NTask(time_need, pl, ram_need, self_send);
+			NTask nt = NTask(time_need, pl, ram_need, self_send, pl.getWTaskId(), step_name, current_step);
 
 			//NS_LOG_INFO(toString() + " pushing NTask: " + nt.toString());
 			this->nTaskList.push_back(nt);
@@ -618,15 +637,17 @@ public:
 			return;
 		}
 
+		int wt_id = std::stoi(std::to_string(next_wt_id++) + id);
+
 		m->try_lock();
 		std::shared_ptr<ANode> aff_node = allNodes->at(affectedNodeIndex);
-		Payload pl = Payload(nextId++, cycle_id, 1, affectedNodeIndex);
+		Payload pl = Payload(wt_id, cycle_id, 1, affectedNodeIndex);
 
 		int wt_retry_time = (int)metaData.getData("WTASK_WAITTIME_SEED");
 		int maxTries = metaData.getData("MAX_TRIES");
 		float retry_time = intRand(wt_retry_time, wt_retry_time*2);
 
-		WTask temp = WTask(retry_time, maxTries, pl);
+		WTask temp = WTask(retry_time, maxTries, pl, wt_id);
 		NS_LOG_UNCOND(toString() + " starting " + cycle_id);
 		wTaskMap.insert(std::pair<int, WTask>(affectedNodeIndex, temp));
 		calcStep(pl);
@@ -647,20 +668,27 @@ public:
 		std::string cycle_id = wt.getCycleId();
 
 		if (cycle_id.find("create") != std::string::npos){
+			int cert_mult = 0;
 			secret->setSecret(true);
 			if (nodeType == L_NODE){
-				secret->setExpire(intRand(60,180));
+				secret->setExpire(intRand(60,run_time));
+				cert_mult = 3;
 			} else {
 				secret->setExpire(100000);
+				cert_mult = 2;
 			}
+			storage_data.cert += (storage_data.cert_size * cert_mult);
+			storage_data.key += storage_data.asym_key_size;
 			NS_LOG_UNCOND(toString() + " got a Secret");
-			saveCycleFinish(getUnix(), id, nodeType, CREATED, "Node got Secret", wt.getTimeSuccess(), wt.getTries());
+			saveCycleFinish(getUnix(), id, nodeType, CREATED, "Node got Secret", wt.getTimeSuccess(), wt.getTries(), getCurrentStorage(), maxStorage, wt.getId());
 
 		} else if(cycle_id.compare("expire_revoke") == 0) {
-			saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wt.getTimeSuccess(), wt.getTries());
+			saveCycleFinish(getUnix(), id, nodeType, EXPIRED, "Node Expired", wt.getTimeSuccess(), wt.getTries(), getCurrentStorage(), maxStorage, wt.getId());
 			NS_LOG_UNCOND(toString() + " revoked/expired Secret");
 			allNodes->at(aff_node)->getSecret()->expireMe(getUnix());
 			hasCrl = false;
+			storage_data.cert = 0;
+			storage_data.key = 0;
 
 		} else if (cycle_id.find("validate") != std::string::npos){
 			// Set hasCrl to true.
@@ -669,7 +697,7 @@ public:
 			bool valid = allNodes->at(aff_node)->getSecret()->validStringAndExpireIfRevoked(msg);
 
 			NS_LOG_UNCOND(toString() + " Validated Node: " + allNodes->at(aff_node)->toString() + " " + msg);
-			saveCycleFinish(getUnix(), id, nodeType, VALIDATED, msg, wt.getTimeSuccess(), wt.getTries());
+			saveCycleFinish(getUnix(), id, nodeType, VALIDATED, msg, wt.getTimeSuccess(), wt.getTries(), getCurrentStorage(), maxStorage, wt.getId());
 
 			std::map<int, NodeData>::iterator node_data_it;
 			node_data_it = allNodeData.find(aff_node);
@@ -770,7 +798,7 @@ public:
 		}
 	}
 
-	void workOnNode(int affected_node){
+	void workOnNode(int affected_node, int reCheck){
 		if (!running) return;
 		if (!secret->hasSecret()) return;
 		std::map<int, WTask>::iterator it;
@@ -781,7 +809,7 @@ public:
 		std::map<int, NodeData>::iterator node_data_it;
 		node_data_it = allNodeData.find(affected_node);
 		if (node_data_it == allNodeData.end()){
-			NodeData temp = NodeData();
+			NodeData temp = NodeData(reCheck);
 			allNodeData.insert(std::pair<int, NodeData>(affected_node, temp));
 			startStep("validate", affected_node);
 		} else {
@@ -813,8 +841,8 @@ public:
 	}
 
 	void revokeNode(){
+		if (!(this->secret->hasSecret())) return;
 		NS_LOG_UNCOND(toString() + "got Revoked");
-
 		allNodes->at(0)->plus_revoked();
 		if (this->getSecret()->hasSecret()) this->getSecret()->setRevoked(true);
 	}
@@ -856,6 +884,20 @@ public:
 	NodeType getNodeType() const {
 		return this->nodeType;
 	}
+
+	std::string getNodeTypeString(){
+		switch (nodeType){
+		case R_NODE:
+			return "R_NODE";
+		case L_NODE:
+			return "L_NODE";
+		case I_NODE:
+			return "I_NODE";
+		default:
+			return "NO_NODE";
+		}
+	}
+
 
 	int getParentIndex() const {
 		return this->parentIndex;

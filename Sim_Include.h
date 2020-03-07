@@ -30,6 +30,7 @@ enum EventType {INFO, CREATED, VALIDATED, ERROR, NTASK_FINISH, WTASK_FINISH, EXP
 #include <list>
 #include <csignal>
 #include <math.h>
+#include "MetaData/Event_Serialize.h"
 
 // From https://github.com/nlohmann/json
 using json = nlohmann::json;
@@ -53,6 +54,22 @@ std::string getJsonErrString(std::string eWhat, std::string cycle, std::string s
 int wt_retry_time;
 int status_unix_intervall;
 
+struct StorageData{
+	int key = 0;
+	int cert = 0;
+
+	int sym_key_size = 0;
+	int asym_key_size = 0;
+	int cert_size = 0;
+	int crl_entry_size = 0;
+
+	int getStorage(int num_sym_keys, int num_rev_cert){
+		return key + (num_sym_keys * sym_key_size) + cert + (crl_entry_size * num_rev_cert);
+	}
+
+
+};
+
 
 struct JsonRead{
 	json jo;
@@ -74,6 +91,16 @@ struct JsonRead{
 			return -1;
 		}
 		return 0;
+	}
+
+	StorageData getConstData(){
+		StorageData d;
+		json j = jo["const_data"];
+		d.sym_key_size = j["sym_key_size"];
+		d.cert_size = j["cert_size"];
+		d.asym_key_size = j["asym_key_size"];
+		d.crl_entry_size = j["crl_entry_size"];
+		return d;
 	}
 
 
@@ -167,6 +194,29 @@ struct JsonRead{
 		return 0;
 	}
 
+	std::string getStepName(std::string c, std::string s){
+		return jo[c][s]["name"];
+	}
+
+	void printAllSteps(std::shared_ptr<EventSerialize> es, std::string lifecycle){
+		json ju;
+		std::string cycle;
+		int i;
+		for (auto& x : jo.items()){
+			if (x.key().compare("Template") != 0){
+				if (x.key().compare("const_data") != 0){
+					i = 1;
+					cycle = x.key();
+					ju = jo[cycle];
+					for (json j : ju){
+						es->saveInfo(lifecycle, cycle, j["name"], i++, 0, "");
+
+					}
+				}
+			}
+		}
+	}
+
 };
 
 
@@ -187,7 +237,7 @@ struct JsonRead{
 
 NS_LOG_COMPONENT_DEFINE ("StatusInfo");
 
-#include "MetaData/Event_Serialize.h"
+
 #include "MetaData/MetaData.h"
 #include "Payload.h"
 #include "WTask.h"

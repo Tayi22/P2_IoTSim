@@ -123,6 +123,10 @@ public:
 	int getAffectedNode() const {
 		return std::stoi(affected_node);
 	}
+
+	const int getWTaskId() const {
+		return std::stoi(wTaskId);
+	}
 };
 
 

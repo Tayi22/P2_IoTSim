@@ -24,7 +24,9 @@ private:
 
 	system_clock::time_point start_time;
 
+
 	Payload pl;
+	int id;
 
 public:
 	WTask(){
@@ -35,17 +37,20 @@ public:
 		retry_alive = 0;
 		max_retries = 0;
 		retries = 0;
+		id = 1;
 		start_time = system_clock::now();
 	}
 
 	WTask	(
 				float max_time,
 				int max_retries,
-				Payload pl
+				Payload pl,
+				int id
 			):
 				max_time(max_time),
 				max_retries(max_retries),
-				pl(pl)
+				pl(pl),
+				id(id)
 			{
 				passed_time = 0.f;
 				retries = 0;
@@ -105,6 +110,9 @@ public:
 		return time_alive / temp;
 	}
 
+	const int& getId() const {
+		return id;
+	}
 };
 
 

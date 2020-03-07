@@ -13,23 +13,26 @@ using namespace ns3;
 using namespace std;
 
 const int RNN = 1;
-int INN = 1;
-int LNPIN = 2;
-int runTime = 180;
+int INN = 8;
+int LNPIN = 6;
+int runTime = 900;
 int endSimInterval = 10;
 int NN;
 const int identitySize = 5;
 int id_num[identitySize] = {0};
-int maxMs = 500;
-int init_revoked_certs = 1;
+int maxMs = 800;
+int init_revoked_certs = 100;
 float single_data_access = 0.147;
 int wait_to_create_again = 10;
+int reCheck = 60;
 
-// std::string jsonFile = "Lifecycle_ECC_Explicit_OSCP.json";
-// std::string jsonFile = "Lifecycle_RSA_DH_Explicit_OSCP.json";
-// std::string jsonFile = "Lifecycle_RSA_DH_Explicit_CRL.json";
-// std::string jsonFile = "Lifecycle_ECC_Explicit_CRL.json";
-std::string jsonFile = "Lifecycle_New_Test.json";
+// std::string jsonFile = "ECC_CRL_Explicit.json"; std::string simName = "ECC_CRL_" + std::to_string(INN) + "_" + std::to_string(LNPIN);
+std::string jsonFile = "ECC_OSCP_Explicit.json"; std::string simName = "ECC_OSCP_";
+// std::string jsonFile = "RSA_CRL.json";
+// std::string jsonFile = "RSA_OSCP.json";
+// std::string jsonFile = "Lifecycle_New_Test.json";
+
+
 
 
 
@@ -65,9 +68,11 @@ int main (int argc, char *argv[])
 	std::vector<shared_ptr<ANode>> allNodes;
 	std::vector<int> l_node_indicies;
 
+	simName = simName + std::to_string(INN) + "_" + std::to_string(LNPIN) + "_" + std::to_string(getUnix());
+
 	std::shared_ptr<JsonRead> jsonRead(new JsonRead);
 	std::shared_ptr<std::mutex> mutex(new std::mutex());
-	std::shared_ptr<EventSerialize> es(new EventSerialize("nTaskFinish.csv", "cycleFinish.csv", "info.csv"));
+	std::shared_ptr<EventSerialize> es(new EventSerialize("nTaskFinish.csv", "cycleFinish.csv", "info.csv", simName));
 
 	Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
 	Time::SetResolution (Time::NS);
@@ -82,6 +87,7 @@ int main (int argc, char *argv[])
 	cmd.AddValue("single_data_access", "Time in ms it takes to perform a single Data Read = 0.147", single_data_access);
 	cmd.AddValue("createWait", "Time in ms to wait after expire to create a new Certificate", wait_to_create_again);
 	cmd.AddValue("rss", "RSS for RssLossModel. Default -70", rss);
+	cmd.AddValue("reCheck", "Seconds until an node re-checkds the validations of the nodes he has a symmetric key with. Default = 60", reCheck);
 	// cmd.AddValue("dataRate", "Datarate in xMbps, Default 5Mbps", dataRate);
 	// cmd.AddValue("delay", "Delay in xms, Default 5ms", delay);
 	// cmd.AddValue("errorRate", "Error Rate for ErrorModel", errorRate);
@@ -147,16 +153,16 @@ int main (int argc, char *argv[])
 
 	for (int i = 0; i < NN; i++){
 		if (i == 0){
-			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again));
+			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize));
 			temp->setNumRevokedCert(init_revoked_certs);
 			allNodes.push_back(std::move(temp));
 		} else {
 			if ((i - 1) % (1+LNPIN) == 0){
 				parentIndex = i;
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize));
 				allNodes.push_back(std::move(temp));
 			} else {
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize));
 				allNodes.push_back(std::move(temp));
 				l_node_indicies.push_back(i);
 			}
@@ -165,7 +171,10 @@ int main (int argc, char *argv[])
 
 	for (int i = 0; i < NN; i++){
 		allNodes.at(i)->setAllNodes(&allNodes);
+		es->saveInfo(simName,"", "",0,std::stoi(allNodes.at(i)->getId()), allNodes.at(i)->getNodeTypeString());
 	}
+
+	jsonRead->printAllSteps(es, simName);
 
 	// Setting Events
 
@@ -193,11 +202,17 @@ int main (int argc, char *argv[])
 			if (n1 != n2){
 				l1 = l_node_indicies.at(n1);
 				l2 = l_node_indicies.at(n2);
-				Simulator::Schedule(Seconds(i), &ANode::workOnNode, allNodes.at(l1).get(), l2);
+				Simulator::Schedule(Seconds(i), &ANode::workOnNode, allNodes.at(l1).get(), l2, reCheck);
 				NS_LOG_INFO("Scheduled WorkOnNode. " + allNodes.at(l1)->toString() + " wants to get Data from " + allNodes.at(l2)->toString());
 			}
 		}
 
+	}
+
+	for (int i = 60; i < (runTime-endSimInterval); i+=30){
+		n1 = rand() % l_node_indicies.size();
+		l1 = l_node_indicies.at(n1);
+		Simulator::Schedule(Seconds(i), &ANode::revokeNode, allNodes.at(l1).get());
 	}
 
 
