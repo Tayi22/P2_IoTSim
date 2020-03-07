@@ -26,10 +26,10 @@ float single_data_access = 0.147;
 int wait_to_create_again = 10;
 int reCheck = 60;
 
-// std::string jsonFile = "ECC_CRL_Explicit.json"; std::string simName = "ECC_CRL_" + std::to_string(INN) + "_" + std::to_string(LNPIN);
-std::string jsonFile = "ECC_OSCP_Explicit.json"; std::string simName = "ECC_OSCP_";
+// std::string jsonFile = "ECC_CRL_Explicit.json"; std::string simName = "ECC_CRL_";
+// std::string jsonFile = "ECC_OSCP_Explicit.json"; std::string simName = "ECC_OSCP_";
 // std::string jsonFile = "RSA_CRL.json";
-// std::string jsonFile = "RSA_OSCP.json";
+std::string jsonFile = "RSA_OSCP.json"; std::string simName = "RSA_OSCP_";
 // std::string jsonFile = "Lifecycle_New_Test.json";
 
 

@@ -172,6 +172,8 @@ private:
 
 	int identity_size;
 
+	int start_time;
+
 
 // Methods:
 
@@ -411,6 +413,8 @@ private:
 			return "Revoke";
 		case PACKET_TRAVEL:
 			return "Packet_Travel";
+		case NODE_END:
+			return "Node_End";
 		default:
 			return "Not Know";
 		}
@@ -485,6 +489,7 @@ public:
 				storage_data = jr->getConstData();
 				NS_LOG_UNCOND(toString() + " created");
 				next_wt_id = 1;
+				start_time = getUnix();
 			}
 
 	~ANode(){
@@ -834,6 +839,7 @@ public:
 
 	void killNode(std::string msg = "killed"){
 		if (running){
+			saveCycleFinish(getUnix(), id, nodeType, NODE_END, "Node finish", getUnix() - start_time, 0, getCurrentStorage(), maxStorage, -1);
 			running = false;
 			this->reasonOfDeath = msg;
 			NS_LOG_UNCOND(toString() + " ended: " + msg + " Max Ram used: " + std::to_string(max_used_ram));
