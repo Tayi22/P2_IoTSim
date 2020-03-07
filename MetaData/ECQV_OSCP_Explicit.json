@@ -29,17 +29,18 @@
     }
   },
   "const_data": {
+    "name": "ECQV_OSCP",
     "crl_entry_size": 100,
-    "asym_key_size": 384,
+    "asym_key_size": 32,
     "sym_key_size": 128,
     "session_key_recheck": 60,
-    "cert_size": 1610
+    "cert_size": 328
   },
   "create_L": {
     "1": {
-      "name": "Start",
-      "ram_strain": 1,
-      "time": 1,
+      "name": "Load Param for ECQV",
+      "ram_strain": 24,
+      "time": 10,
       "next_step": {
         "Option_1": {
           "nextStep": 2,
@@ -50,7 +51,7 @@
     "2": {
       "name": "Gen Key",
       "ram_strain": 2648,
-      "time": 83996,
+      "time": 240,
       "next_step": {
         "Option_1": {
           "nextStep": 3,
@@ -61,66 +62,9 @@
     "3": {
       "name": "Gen CSR",
       "ram_strain": 260,
-      "time": 3081,
+      "time": 248,
       "payload": {
-        "size": 1375
-      },
-      "next_step": {
-        "Option_1": {
-          "nextStep": 4,
-          "sendTo": "p"
-        }
-      }
-    },
-    "4": {
-      "name": "Create Certificate",
-      "ram_strain": 1090,
-      "time": 290,
-      "payload": {
-        "size": 4830
-      },
-      "next_step": {
-        "Option_1": {
-          "nextStep": 5,
-          "sendTo": "s"
-        }
-      }
-    },
-    "5": {
-      "name": "Save Cert",
-      "ram_strain": 144,
-      "time": 10
-    }
-  },
-  "create_I": {
-    "1": {
-      "name": "Start",
-      "ram_strain": 1,
-      "time": 1,
-      "next_step": {
-        "Option_1": {
-          "nextStep": 2,
-          "sendTo": "t"
-        }
-      }
-    },
-    "2": {
-      "name": "Gen Key",
-      "ram_strain": 2648,
-      "time": 40000,
-      "next_step": {
-        "Option_1": {
-          "nextStep": 3,
-          "sendTo": "t"
-        }
-      }
-    },
-    "3": {
-      "name": "Gen CSR",
-      "ram_strain": 260,
-      "time": 124,
-      "payload": {
-        "size": 1375
+        "size": 290
       },
       "next_step": {
         "Option_1": {
@@ -134,7 +78,7 @@
       "ram_strain": 130,
       "time": 120,
       "payload": {
-        "size": 3220
+        "size": 984
       },
       "next_step": {
         "Option_1": {
@@ -144,8 +88,65 @@
       }
     },
     "5": {
-      "name": "Save Cert",
-      "ram_strain": 144,
+      "name": "Save Cert and finish priv Key",
+      "ram_strain": 244,
+      "time": 20
+    }
+  },
+  "create_I": {
+    "1": {
+      "name": "Load Param from ECQV",
+      "ram_strain": 24,
+      "time": 10,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 2,
+          "sendTo": "t"
+        }
+      }
+    },
+    "2": {
+      "name": "Gen Key",
+      "ram_strain": 2300,
+      "time": 120,
+      "next_step": {
+        "Option_1": {
+          "nextStep": 3,
+          "sendTo": "t"
+        }
+      }
+    },
+    "3": {
+      "name": "Gen CSR",
+      "ram_strain": 260,
+      "time": 124,
+      "payload": {
+        "size": 290
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 4,
+          "sendTo": "p"
+        }
+      }
+    },
+    "4": {
+      "name": "Create Certificate",
+      "ram_strain": 130,
+      "time": 60,
+      "payload": {
+        "size": 656
+      },
+      "next_step": {
+        "Option_1": {
+          "nextStep": 5,
+          "sendTo": "s"
+        }
+      }
+    },
+    "5": {
+      "name": "Save Cert and Finish Priv Key",
+      "ram_strain": 244,
       "time": 10
     }
   },
@@ -184,6 +185,10 @@
       "name": "Expire on R",
       "ram_strain": 144,
       "time": 3,
+      "payload": {
+        "size": 100,
+        "mult_with": 1
+      },
       "next_step": {
         "Option_1": {
           "nextStep": 4,
@@ -225,7 +230,7 @@
       "ram_strain": 144,
       "time": 10,
       "payload": {
-        "size": 4830,
+        "size": 1500,
         "mult_with": 1
       },
       "next_step": {
@@ -236,9 +241,9 @@
       }
     },
     "3": {
-      "name": "Check Root Cert",
-      "ram_strain": 144,
-      "time": 42,
+      "name": "Extract Public Key",
+      "ram_strain": 200,
+      "time": 50,
       "next_step": {
         "Option_1": {
           "nextStep": 4,
@@ -247,10 +252,9 @@
       }
     },
     "4": {
-      "name": "Is Valid Root Cert",
-      "ram_strain": 1,
-      "time": 1,
-      "check_valid_aff": true,
+      "name": "Check Root Cert",
+      "ram_strain": 144,
+      "time": 10,
       "next_step": {
         "Option_1": {
           "nextStep": 5,
@@ -259,63 +263,60 @@
       }
     },
     "5": {
-      "name": "Check CRL",
-      "ram_strain": 144,
-      "time": 10,
+      "name": "Is Valid Root Cert",
+      "ram_strain": 1,
+      "time": 1,
       "next_step": {
         "Option_1": {
           "nextStep": 6,
           "sendTo": "t"
         }
-      }
+      },
+      "check_valid_aff": true
     },
     "6": {
-      "name": "OSCP Request",
+      "name": "Query OSCP Request",
       "ram_strain": 1,
       "time": 10,
-      "payload": {
-        "size": 100,
-        "mult_with": 1
-      },
       "next_step": {
         "Option_1": {
           "nextStep": 7,
           "sendTo": "r"
         }
+      },
+      "payload": {
+        "size": 100,
+        "mult_with": 1
       }
     },
     "7": {
-      "name": "Check OSCP",
-      "ram_strain": 96,
-      "time": 10,
-      "check_revoke_list": "OSCP",
+      "name": "Query OSCP",
+      "ram_strain": 69,
+      "time": 1,
       "next_step": {
         "Option_1": {
           "nextStep": 8,
           "sendTo": "s"
         }
       },
-      "payload": {
-        "size": 100,
-        "mult_with": "num_revo_cert"
-      }
+      "check_revoke_list": "OSCP"
     },
     "8": {
       "name": "Check Valid",
-      "ram_strain": 10,
-      "time": 10,
-      "check_valid_aff": true,
+      "ram_strain": 1,
+      "time": 1,
       "next_step": {
         "Option_1": {
           "nextStep": 9,
           "sendTo": "t"
         }
-      }
+      },
+      "check_valid_aff": true
     },
     "9": {
       "name": "Set Alice Context and send",
-      "ram_strain": 374,
-      "time": 440,
+      "ram_strain": 209,
+      "time": 372,
       "payload": {
         "size": 360,
         "mult_with": 1
@@ -329,8 +330,8 @@
     },
     "10": {
       "name": "Setting Bob Context",
-      "ram_strain": 440,
-      "time": 240,
+      "ram_strain": 372,
+      "time": 209,
       "next_step": {
         "Option_1": {
           "nextStep": 11,
@@ -340,23 +341,23 @@
     },
     "11": {
       "name": "Bob Read Alice Values and gen Secret",
-      "ram_strain": 374,
-      "time": 250,
-      "payload": {
-        "size": 116,
-        "mult_with": 1
-      },
+      "ram_strain": 116,
+      "time": 216,
       "next_step": {
         "Option_1": {
           "nextStep": 12,
           "sendTo": "s"
         }
+      },
+      "payload": {
+        "size": 116,
+        "mult_with": 1
       }
     },
     "12": {
       "name": "Alice reading Bob and gen Key",
-      "ram_strain": 360,
-      "time": 250
+      "ram_strain": 116,
+      "time": 218
     }
   }
 }

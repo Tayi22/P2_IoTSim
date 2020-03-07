@@ -338,7 +338,7 @@
     "11": {
       "name": "Set Alice Context and send",
       "ram_strain": 374,
-      "time": 240,
+      "time": 440,
       "payload": {
         "size": 360,
         "mult_with": 1
@@ -353,7 +353,7 @@
     "12": {
       "name": "Setting Bob Context",
       "ram_strain": 372,
-      "time": 240,
+      "time": 440,
       "next_step": {
         "Option_1": {
           "nextStep": 13,
@@ -364,7 +364,7 @@
     "13": {
       "name": "Bob Read Alice Values and gen Secret",
       "ram_strain": 374,
-      "time": 240,
+      "time": 250,
       "payload": {
         "size": 116,
         "mult_with": 1
@@ -379,7 +379,7 @@
     "14": {
       "name": "Alice reading Bob and gen Key",
       "ram_strain": 360,
-      "time": 240
+      "time": 250
     }
   }
 }
