@@ -12,6 +12,7 @@ enum NodeType {R_NODE, L_NODE, I_NODE};
 enum EventType {INFO, CREATED, VALIDATED, ERROR, NTASK_FINISH, WTASK_FINISH, EXPIRED, REVOKED, PACKET_TRAVEL, NODE_END};
 
 #include <iostream>
+#include <queue>
 #include <random>
 #include <string>
 #include <map>
@@ -238,8 +239,11 @@ struct JsonRead{
 NS_LOG_COMPONENT_DEFINE ("StatusInfo");
 
 
+
+
 #include "MetaData/MetaData.h"
 #include "Payload.h"
+#include "Packet_Queue.h"
 #include "WTask.h"
 #include "NTask.h"
 #include "ANode.h"

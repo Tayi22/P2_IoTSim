@@ -25,12 +25,21 @@ int init_revoked_certs = 100;
 float single_data_access = 0.147;
 int wait_to_create_again = 10;
 int reCheck = 60;
+std::string jsonFile;
+std::string simName;
+std::vector<shared_ptr<ANode>> allNodes;
+int curr_time;
+int end_time;
+std::shared_ptr<PacketQueue> mainQ;
 
-// std::string jsonFile = "ECC_CRL_Explicit.json"; std::string simName = "ECC_CRL_";
-// std::string jsonFile = "ECC_OSCP_Explicit.json"; std::string simName = "ECC_OSCP_";
+
+
+// std::string jsonFile = "ECC_CRL.json"; std::string simName = "ECC_CRL_";
+// std::string jsonFile = "ECC_OSCP.json"; std::string simName = "ECC_OSCP_";
 // std::string jsonFile = "RSA_CRL.json";
-std::string jsonFile = "RSA_OSCP.json"; std::string simName = "RSA_OSCP_";
+// std::string jsonFile = "RSA_OSCP.json"; std::string simName = "RSA_OSCP_";
 // std::string jsonFile = "Lifecycle_New_Test.json";
+// std::string jsonFile = "ECQV_OSCP.json"; std::string simName = "ECQV_OSCP_";
 
 
 
@@ -59,29 +68,31 @@ std::string getId(){
 	return ss.str();
 }
 
+void runQueue(){
+	mainQ->workQueue();
+	Simulator::Schedule(Seconds(0.0), runQueue);
+}
 
 
 int main (int argc, char *argv[])
 {
 	std::string phyMode("DsssRate1Mbps");
 	double rss = -70;
-	std::vector<shared_ptr<ANode>> allNodes;
+
 	std::vector<int> l_node_indicies;
-
-	simName = simName + std::to_string(INN) + "_" + std::to_string(LNPIN) + "_" + std::to_string(getUnix());
-
-	std::shared_ptr<JsonRead> jsonRead(new JsonRead);
-	std::shared_ptr<std::mutex> mutex(new std::mutex());
-	std::shared_ptr<EventSerialize> es(new EventSerialize("nTaskFinish.csv", "cycleFinish.csv", "info.csv", simName));
 
 	Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
 	Time::SetResolution (Time::NS);
 	GlobalValue::Bind("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
 
+	simName = "Default " + std::to_string(INN) + "_" + std::to_string(LNPIN) + "_" + std::to_string(getUnix());
+	jsonFile = "No File specified.";
+
 	CommandLine cmd;
 	cmd.AddValue("INN", "IntermediantNodeNumber. Number of INodes in the Simulation", INN);
 	cmd.AddValue("LNPIN", "LeafNodePerIntermediantNode, Number of LNodes per INode in the Simulation", LNPIN);
 	cmd.AddValue("jsonFile", "Json File to import the Lifecycle (with .json)", jsonFile);
+	cmd.AddValue("simName", "Name of the Simulation", simName);
 	cmd.AddValue("runTime", "Time in Seconds how long the Simulation Runs", runTime);
 	cmd.AddValue("maxMs", "Threshhold to count number of to high latency", maxMs);
 	cmd.AddValue("single_data_access", "Time in ms it takes to perform a single Data Read = 0.147", single_data_access);
@@ -94,9 +105,26 @@ int main (int argc, char *argv[])
 	// cmd.AddValue("WTaskRetryTime", "Sets the lower Intervall of when to retry a Waiting Task. Upper Interval is x2 the lower Interval", wt_retry_time);
 	cmd.Parse (argc, argv);
 
+	std::shared_ptr<JsonRead> jsonRead(new JsonRead);
+	std::shared_ptr<std::mutex> mutex(new std::mutex());
+	std::shared_ptr<EventSerialize> es(new EventSerialize("nTaskFinish.csv", "cycleFinish.csv", "info.csv", simName));
+	 //(new PacketQueue);
+	mainQ.reset(new PacketQueue);
+
 	NN = RNN + INN + (INN*LNPIN);
 
-	jsonRead->init(jsonFile, single_data_access);
+	if (runTime < 180){
+		NS_LOG_UNCOND("Simulation needs to run at least for 2 Minutes (180 Seconds)");
+		return 0;
+	}
+
+
+	try{
+		jsonRead->init(jsonFile, single_data_access);
+	} catch (...){
+		NS_LOG_UNCOND("Could not import json. " + jsonFile);
+		return 0;
+	}
 
 	// Creates a NodeContainer for all Nodes in the Wifi
 	NodeContainer c;
@@ -153,17 +181,17 @@ int main (int argc, char *argv[])
 
 	for (int i = 0; i < NN; i++){
 		if (i == 0){
-			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize));
+			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, mainQ, reCheck));
 			temp->setNumRevokedCert(init_revoked_certs);
-			allNodes.push_back(std::move(temp));
+			allNodes.push_back(temp);
 		} else {
 			if ((i - 1) % (1+LNPIN) == 0){
 				parentIndex = i;
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize));
-				allNodes.push_back(std::move(temp));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, mainQ, reCheck));
+				allNodes.push_back(temp);
 			} else {
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize));
-				allNodes.push_back(std::move(temp));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, mainQ, reCheck));
+				allNodes.push_back(temp);
 				l_node_indicies.push_back(i);
 			}
 		}
@@ -176,76 +204,21 @@ int main (int argc, char *argv[])
 
 	jsonRead->printAllSteps(es, simName);
 
-	// Setting Events
-
-	// Simulator::Schedule(Seconds(1.0), &ANode::killNode, allNodes.at(4).get(), "Never lived");
-
-	for (float i = 5.f; i < (runTime-endSimInterval); i+=0.02){
-		for (auto n : allNodes) {
-			Simulator::Schedule(Seconds(i), &ANode::checkNode, n.get());
-		}
+	// Simulator::Schedule(Seconds(1), &PacketQueue::runQueue, mainQ.get());
+	// Simulator::Schedule(Seconds(runTime-endSimInterval), &PacketQueue::runQueue, mainQ.get());
+	for (float i = 5.f; i < (runTime-endSimInterval); i+=0.01){
+		Simulator::Schedule(Seconds(i), &PacketQueue::workQueue, mainQ.get());
 	}
 
-	int n1;
-	int n2;
-	int l1;
-	int l2;
-	int vali_per_sec = (float)l_node_indicies.size() * 0.2f;
-	if (vali_per_sec < 1) vali_per_sec = 1;
-
-
-	for (int i = 5; i<(runTime-endSimInterval); i++){
-		for (int u = 0; u < vali_per_sec; u++){
-			srand(i);
-			n1 = rand() % l_node_indicies.size();
-			n2 = rand() % l_node_indicies.size();
-			if (n1 != n2){
-				l1 = l_node_indicies.at(n1);
-				l2 = l_node_indicies.at(n2);
-				Simulator::Schedule(Seconds(i), &ANode::workOnNode, allNodes.at(l1).get(), l2, reCheck);
-				NS_LOG_INFO("Scheduled WorkOnNode. " + allNodes.at(l1)->toString() + " wants to get Data from " + allNodes.at(l2)->toString());
-			}
-		}
-
-	}
-
-	for (int i = 60; i < (runTime-endSimInterval); i+=30){
-		n1 = rand() % l_node_indicies.size();
-		l1 = l_node_indicies.at(n1);
-		Simulator::Schedule(Seconds(i), &ANode::revokeNode, allNodes.at(l1).get());
-	}
-
-
-
-	for (auto n : allNodes) {
-		Simulator::Schedule(Seconds(runTime-(endSimInterval + 1)), &ANode::killNode, n.get(), "Natural");
-	}
-
-	// Simulator::Schedule(Seconds(60), &ANode::revokeNode, allNodes.at(3).get());
-
-
-
-	// End Setting Events
-
-	/*
-	for (auto n : allNodes) {
-		if (!(n->isType(R_NODE))){
-			Simulator::Schedule(Seconds(3.0), &ANode::startStep, n.get(), "create", n->getIndex());
-		}
-	}
-
-	for (auto n : allNodes) {
-		if (n->isType(L_NODE)){
-			Simulator::Schedule(Seconds(7.0), &ANode::startStep, n.get(), "create", n->getIndex());
-		}
-	}
-*/
 
 	NS_LOG_UNCOND("Loaded " + std::to_string(INN) + " I Nodes and " + std::to_string(INN*LNPIN) + " L Nodes.");
 	NS_LOG_UNCOND("Simulation runns for " + std::to_string(runTime / 60) + " Minutes");
 	NS_LOG_UNCOND("Loading complete. Start the Simulation with ENTER");
 	std::cin.ignore();
 
+	for (auto n : allNodes){
+		n->startNode();
+	}
 
 
 	Simulator::Stop(Seconds(runTime));

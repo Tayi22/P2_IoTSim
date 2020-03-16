@@ -3,6 +3,7 @@
  *
  *  Created on: Feb 1, 2020
  *      Author: richard
+ *      SimIdM905.#
  */
 
 #ifndef SCRATCH_IOTSIM_WIFI_ANODE_H_
@@ -136,11 +137,7 @@ private:
 	std::shared_ptr<std::mutex> m;
 
 	std::list<NTask> nTaskList;
-	/*
-	std::unique_ptr<WTask> wTask_create;
-	std::unique_ptr<WTask> wTask_validate;
-	std::unique_ptr<WTask> wTask_expire_revoke;
-	*/
+
 
 	std::map<int, WTask> wTaskMap;
 	int nextId = 0;
@@ -174,6 +171,15 @@ private:
 
 	int start_time;
 
+	unsigned int max_thread;
+
+	std::shared_ptr<PacketQueue> mq;
+
+	int re_check;
+
+	Ptr<SystemThread> nodeThread;
+
+	std::queue<Payload> stepQueue;
 
 // Methods:
 
@@ -232,7 +238,8 @@ private:
 		Ptr<Packet> pk = sock->Recv();
 		if (!running) return;
 		Payload pl = getPayloadFromPacket(pk);
-		calcStep(pl);
+		stepQueue.push(pl);
+		// calcStep(pl);
 		return;
 	}
 
@@ -282,7 +289,7 @@ private:
 	void passiveCreate(){
 		if (!secret->hasSecret()){
 			if (canCreatePassive("create")){
-				m->try_lock();
+				// m->try_lock();
 				if (secret->canCreate(getUnix())){
 					if (nodeType == L_NODE){
 						this->startStep("create_L", index);
@@ -290,7 +297,7 @@ private:
 						this->startStep("create_I", index);
 					}
 				}
-				m->unlock();
+				// m->unlock();
 			}
 		}
 	}
@@ -299,9 +306,9 @@ private:
 		if (secret->checkExpire()){
 			WTask wt;
 			if (canCreatePassive("validate")){
-				m->try_lock();
+				// m->try_lock();
 				this->startStep("expire_revoke", index);
-				m->unlock();
+				// m->unlock();
 			}
 		}
 	}
@@ -328,9 +335,12 @@ private:
 				if (nTaskTime >= 0){
 					Payload pl = it->getPl();
 					if(it->isSelfSend()){
-						this->calcStep(pl);
+						stepQueue.push(pl);
+						// this->calcStep(pl);
 					} else {
-						this->remote_send(pl);
+						// HIER CHANGE REMOTE SEND
+						// this->remote_send(pl);
+						this->queue_send(pl);
 					}
 					int num = getNodeIndexFromWtId(it->getWtId());
 					std::string startNodeType = allNodes->at(num)->getNodeTypeString();
@@ -362,13 +372,14 @@ private:
 		int wTask_status;
 		std::map<int, WTask>::iterator it;
 
-		m->try_lock();
+		// m->try_lock();
 		for (it = wTaskMap.begin(); it != wTaskMap.end(); it++){
 			wTask_status = it->second.check();
 
 			if (wTask_status == 1){
 				NS_LOG_UNCOND(toString() + " Retry " + it->second.getPl().cycle_id);
-				calcStep(it->second.getPl());
+				stepQueue.push(it->second.getPl());
+				// calcStep(it->second.getPl());
 			} else if (wTask_status == 2){
 				if (nodeType == L_NODE){
 					changeParent();
@@ -377,7 +388,7 @@ private:
 				}
 			}
 		}
-		m->unlock();
+		// m->unlock();
 	}
 
 	int checkCondition(std::string con, int aff_node){
@@ -461,7 +472,9 @@ public:
 				int maxMs,
 				int wait_to_create_again,
 				int run_time,
-				int identity_size
+				int identity_size,
+				std::shared_ptr<PacketQueue> mq,
+				int re_check
 			):
 				id(id),
 				index(index),
@@ -474,22 +487,24 @@ public:
 				es(es),
 				maxMs(maxMs),
 				run_time(run_time),
-				identity_size(identity_size)
+				identity_size(identity_size),
+				mq(mq),
+				re_check(re_check)
 			{
 				this->secret.reset(new Secret());
 				this->secret->waitForCreate = wait_to_create_again;
 				hasCrl = false;
 				setupSockets();
-				// this->nodeThread = Create<SystemThread>(MakeCallback(&ANode::loop, this));
-				// startThread();
 				setParameters();
 				reasonOfDeath = "Natural";
 				running = true;
 				num_revoked_cert = 0;
 				storage_data = jr->getConstData();
-				NS_LOG_UNCOND(toString() + " created");
+				NS_LOG_INFO(toString() + " created");
 				next_wt_id = 1;
 				start_time = getUnix();
+				max_thread = metaData.getData("MAX_THREAD");
+				stepQueue = std::queue<Payload>();
 			}
 
 	~ANode(){
@@ -497,6 +512,11 @@ public:
 		this->wTaskMap.clear();
 		this->send_sock->Close();
 		this->recv_sock->Close();
+	}
+
+	void startNode(){
+		this->nodeThread = Create<SystemThread>(MakeCallback(&ANode::run_node_thread, this));
+		nodeThread->Start();
 	}
 
 
@@ -517,8 +537,6 @@ public:
 				}
 			}
 		}
-
-
 		NS_LOG_INFO(toString() + " working on: " + pl.toString());
 
 		float time_need;
@@ -644,7 +662,6 @@ public:
 
 		int wt_id = std::stoi(std::to_string(next_wt_id++) + id);
 
-		m->try_lock();
 		std::shared_ptr<ANode> aff_node = allNodes->at(affectedNodeIndex);
 		Payload pl = Payload(wt_id, cycle_id, 1, affectedNodeIndex);
 
@@ -655,8 +672,9 @@ public:
 		WTask temp = WTask(retry_time, maxTries, pl, wt_id);
 		NS_LOG_UNCOND(toString() + " starting " + cycle_id);
 		wTaskMap.insert(std::pair<int, WTask>(affectedNodeIndex, temp));
-		calcStep(pl);
-		m->unlock();
+		stepQueue.push(pl);
+		// calcStep(pl);
+
 	}
 
 	void finishWTask(int aff_node){
@@ -666,8 +684,6 @@ public:
 			NS_LOG_UNCOND(toString() + " didnt have a WTask waiting for " + std::to_string(aff_node) + ". Check if the Lifecycle ends on the same node that started it");
 			return;
 		}
-
-		m->try_lock();
 		WTask wt = it->second;
 		wt.getTimeSuccess() >= maxMs ? ms_over_count++ : ms_under_count++;
 		std::string cycle_id = wt.getCycleId();
@@ -719,10 +735,7 @@ public:
 			}
 
 		}
-
 		wTaskMap.erase(it);
-		m->unlock();
-
 	}
 
 
@@ -730,6 +743,10 @@ public:
 		std::string payload = pl.genPayloadString();
 		Ptr<Packet> pkt = Create<Packet>(reinterpret_cast<const uint8_t*> (payload.c_str()),payload.size());
 		this->send_sock->SendTo(pkt, 0, pl.getNextReceipt());
+	}
+
+	void queue_send(Payload pl){
+		mq->addQueue(pl, this->send_sock);
 	}
 
 
@@ -782,12 +799,80 @@ public:
 		return allNodes->at(receiver_index)->getInetSocketAddress();
 	}
 
+
+
+	void runNode(bool rc, bool vc){
+		if (!running) return;
+		checkNode();
+		if (nodeType == L_NODE && vc){
+			int ran_node_index = intRand(0, allNodes->size()-1);
+			if (ran_node_index != index){
+				if(allNodes->at(ran_node_index)->getNodeType() == L_NODE){
+					workOnNode(ran_node_index);
+				}
+			}
+		} else if (nodeType == R_NODE && rc){
+			int ran_node_index = intRand(0, allNodes->size()-1);
+			std::shared_ptr<ANode> rev_node = allNodes->at(ran_node_index);
+			if(rev_node->getNodeType() == L_NODE){
+				rev_node->revokeNode();
+			}
+		}
+	}
+
+	void run_node_thread(){
+		int revoke_cooldown = intRand(60, 120);
+		int validate_cooldown = intRand(30,90);
+		int curr_rc;
+		int curr_vc;
+		int last_unix = getUnix();
+		bool rc;
+		bool vc;
+		running = true;
+		while(running){
+			rc = false;
+			vc = false;
+			if (curr_rc > revoke_cooldown){
+				rc = true;
+				curr_rc = 0;
+			}
+			if (curr_vc > validate_cooldown){
+				vc = true;
+				curr_vc = 0;
+			}
+			if (getUnix() - start_time > 10){
+				runNode(rc, vc);
+				if (getUnix() > last_unix){
+					curr_rc++;
+					curr_vc++;
+					last_unix = getUnix();
+				}
+
+			}
+			if (getUnix() - start_time > run_time){
+				killNode("Natural");
+			}
+		}
+	}
+
+	void calcNextStepFromQueue(){
+		m->lock();
+		if (stepQueue.empty()){
+			m->unlock();
+			return;
+		}
+		Payload pl = stepQueue.front();
+		stepQueue.pop();
+		m->unlock();
+		calcStep(pl);
+	}
+
 	void checkNode(){
-		unsigned int max_thread = metaData.getData("MAX_THREAD");
 		if (running){
 			cpu_ticks++;
 			passiveCreate();
 			passiveExpire();
+			calcNextStepFromQueue();
 			int usedRam = 0;
 			try{
 				usedRam = checkNTaskList(max_thread);
@@ -803,18 +888,17 @@ public:
 		}
 	}
 
-	void workOnNode(int affected_node, int reCheck){
+	void workOnNode(int affected_node){
 		if (!running) return;
 		if (!secret->hasSecret()) return;
 		std::map<int, WTask>::iterator it;
 		it = wTaskMap.find(affected_node);
 		if (it != wTaskMap.end()) return;
-
-		m->try_lock();
+		// m->try_lock();
 		std::map<int, NodeData>::iterator node_data_it;
 		node_data_it = allNodeData.find(affected_node);
 		if (node_data_it == allNodeData.end()){
-			NodeData temp = NodeData(reCheck);
+			NodeData temp = NodeData(re_check);
 			allNodeData.insert(std::pair<int, NodeData>(affected_node, temp));
 			startStep("validate", affected_node);
 		} else {
@@ -826,7 +910,7 @@ public:
 				startStep("validate", affected_node);
 			}
 		}
-		m->unlock();
+		// m->unlock();
 
 		// TODO - Implement;
 	}
@@ -847,8 +931,9 @@ public:
 	}
 
 	void revokeNode(){
+		if (this->secret->revoked) return;
 		if (!(this->secret->hasSecret())) return;
-		NS_LOG_UNCOND(toString() + "got Revoked");
+		NS_LOG_UNCOND(toString() + " got Revoked");
 		allNodes->at(0)->plus_revoked();
 		if (this->getSecret()->hasSecret()) this->getSecret()->setRevoked(true);
 	}
