@@ -203,11 +203,14 @@ int main (int argc, char *argv[])
 	}
 
 	jsonRead->printAllSteps(es, simName);
+	uint32_t context1 = 100;
+	uint32_t context2 = 200;
 
 	// Simulator::Schedule(Seconds(1), &PacketQueue::runQueue, mainQ.get());
 	// Simulator::Schedule(Seconds(runTime-endSimInterval), &PacketQueue::runQueue, mainQ.get());
 	for (float i = 5.f; i < (runTime-endSimInterval); i+=0.01){
-		Simulator::Schedule(Seconds(i), &PacketQueue::workQueue, mainQ.get());
+		Simulator::ScheduleWithContext(context1, Seconds(i), &PacketQueue::workQueue, mainQ.get());
+
 	}
 
 
