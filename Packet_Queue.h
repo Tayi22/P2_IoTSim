@@ -11,59 +11,50 @@
 
 
 using namespace ns3;
-
 class PacketQueue{
 
 private:
+	const std::vector<std::shared_ptr<ANode>> * allNodes;
 
-	struct QueueObj{
-		Ptr<Socket> sock;
-		Payload pl;
-	};
+	int q_id;
+	int q_start;
+	int runtime;
 
-	std::queue<QueueObj> mainQ;
-	bool running = false;
-	Ptr<SystemThread> queueThread;
-
-	void workLoop(){
-		while(running){
-			workQueue();
-		}
+	int getUnix(){
+		std::time_t result = std::time(nullptr);
+		return result;
 	}
 
 public:
 
-	PacketQueue(){
-		mainQ = std::queue<QueueObj>();
+	PacketQueue(int q_id, int runtime){
+		this->q_id = q_id;
+		q_start = getUnix();
+		this->runtime = runtime;
 	}
 
-	void addQueue(Payload pl, Ptr<Socket> sock){
-		QueueObj temp;
-		temp.sock = sock;
-		temp.pl = pl;
-		mainQ.push(temp);
+	~PacketQueue(){
+
 	}
+
 
 	void workQueue(){
-		if (mainQ.empty()) return;
-		QueueObj temp = mainQ.front();
-		std::string payload = temp.pl.genPayloadString();
-		Ptr<Packet> pkt = Create<Packet>(reinterpret_cast<const uint8_t*> (payload.c_str()),payload.size());
-		temp.sock->SendTo(pkt, 0, temp.pl.getNextReceipt());
-		mainQ.pop();
+		if((getUnix() - q_start) > runtime - 10) return;
+		for (auto n : *allNodes){
+			n->remote_send();
+		}
 	}
 
-	void runQueue(){
-		running = true;
-		queueThread = Create<SystemThread>(MakeCallback(&PacketQueue::workLoop, this));
-		queueThread->Start();
-		return;
+	void loopQueue(){
+		NS_LOG_UNCOND("Looping Queue " + std::to_string(this->q_id));
+		while(getUnix() - q_start < runtime){
+			workQueue();
+		}
 	}
 
-	void stopQueue(){
-		running = false;
+	void setAllNodes(const std::vector<std::shared_ptr<ANode> > * allNodes) {
+		this->allNodes = allNodes;
 	}
-
 
 };
 

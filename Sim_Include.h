@@ -238,16 +238,12 @@ struct JsonRead{
 
 NS_LOG_COMPONENT_DEFINE ("StatusInfo");
 
-
-
-
 #include "MetaData/MetaData.h"
 #include "Payload.h"
-#include "Packet_Queue.h"
 #include "WTask.h"
 #include "NTask.h"
 #include "ANode.h"
-
+#include "Packet_Queue.h"
 
 
 

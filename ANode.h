@@ -4,6 +4,8 @@
  *  Created on: Feb 1, 2020
  *      Author: richard
  *      SimIdM905.#
+ *      131.130.125.142
+ *      ./waf --run IoTSim_Wifi --command-template="gdb --args %s --jsonFile=ECC_CRL.json --runTime=900 --simName=Test --INN=5 --LNPIN=8"
  */
 
 #ifndef SCRATCH_IOTSIM_WIFI_ANODE_H_
@@ -173,7 +175,7 @@ private:
 
 	unsigned int max_thread;
 
-	std::shared_ptr<PacketQueue> mq;
+	std::queue<Payload> mq;
 
 	int re_check;
 
@@ -473,7 +475,6 @@ public:
 				int wait_to_create_again,
 				int run_time,
 				int identity_size,
-				std::shared_ptr<PacketQueue> mq,
 				int re_check
 			):
 				id(id),
@@ -488,7 +489,6 @@ public:
 				maxMs(maxMs),
 				run_time(run_time),
 				identity_size(identity_size),
-				mq(mq),
 				re_check(re_check)
 			{
 				this->secret.reset(new Secret());
@@ -739,14 +739,17 @@ public:
 	}
 
 
-	void remote_send(Payload pl){
+	void remote_send(){
+		if (mq.empty()) return;
+		Payload pl = mq.front();
+		mq.pop();
 		std::string payload = pl.genPayloadString();
 		Ptr<Packet> pkt = Create<Packet>(reinterpret_cast<const uint8_t*> (payload.c_str()),payload.size());
 		this->send_sock->SendTo(pkt, 0, pl.getNextReceipt());
 	}
 
 	void queue_send(Payload pl){
-		mq->addQueue(pl, this->send_sock);
+		mq.push(pl);
 	}
 
 
@@ -849,7 +852,7 @@ public:
 				}
 
 			}
-			if (getUnix() - start_time > run_time){
+			if (getUnix() - start_time > (run_time-20)){
 				killNode("Natural");
 			}
 		}
@@ -963,6 +966,7 @@ public:
 	void setAllNodes(const std::vector<std::shared_ptr<ANode> > * allNodes) {
 		this->allNodes = allNodes;
 	}
+
 
 	bool isType(NodeType nodeType){
 		return this->nodeType == nodeType;

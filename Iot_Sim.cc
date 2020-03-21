@@ -30,7 +30,8 @@ std::string simName;
 std::vector<shared_ptr<ANode>> allNodes;
 int curr_time;
 int end_time;
-std::shared_ptr<PacketQueue> mainQ;
+std::shared_ptr<PacketQueue> mainQ_1;
+// std::shared_ptr<PacketQueue> mainQ_2;
 
 
 
@@ -66,11 +67,6 @@ std::string getId(){
 	}
 	nextId();
 	return ss.str();
-}
-
-void runQueue(){
-	mainQ->workQueue();
-	Simulator::Schedule(Seconds(0.0), runQueue);
 }
 
 
@@ -109,7 +105,8 @@ int main (int argc, char *argv[])
 	std::shared_ptr<std::mutex> mutex(new std::mutex());
 	std::shared_ptr<EventSerialize> es(new EventSerialize("nTaskFinish.csv", "cycleFinish.csv", "info.csv", simName));
 	 //(new PacketQueue);
-	mainQ.reset(new PacketQueue);
+	mainQ_1.reset(new PacketQueue(1, runTime));
+	// mainQ_2.reset(new PacketQueue(2, runTime));
 
 	NN = RNN + INN + (INN*LNPIN);
 
@@ -178,19 +175,20 @@ int main (int argc, char *argv[])
 	ipv4InterfaceContainer = ipv4.Assign(devices);
 
 	int parentIndex;
+	// std::shared_ptr<PacketQueue> mainQ = mainQ_1;
 
 	for (int i = 0; i < NN; i++){
 		if (i == 0){
-			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, mainQ, reCheck));
+			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
 			temp->setNumRevokedCert(init_revoked_certs);
 			allNodes.push_back(temp);
 		} else {
 			if ((i - 1) % (1+LNPIN) == 0){
 				parentIndex = i;
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, mainQ, reCheck));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
 				allNodes.push_back(temp);
 			} else {
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, mainQ, reCheck));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
 				allNodes.push_back(temp);
 				l_node_indicies.push_back(i);
 			}
@@ -202,17 +200,19 @@ int main (int argc, char *argv[])
 		es->saveInfo(simName,"", "",0,std::stoi(allNodes.at(i)->getId()), allNodes.at(i)->getNodeTypeString());
 	}
 
+	mainQ_1->setAllNodes(&allNodes);
+
 	jsonRead->printAllSteps(es, simName);
 	uint32_t context1 = 100;
-	uint32_t context2 = 200;
+	// uint32_t context2 = 200;
 
-	// Simulator::Schedule(Seconds(1), &PacketQueue::runQueue, mainQ.get());
-	// Simulator::Schedule(Seconds(runTime-endSimInterval), &PacketQueue::runQueue, mainQ.get());
-	for (float i = 5.f; i < (runTime-endSimInterval); i+=0.01){
-		Simulator::ScheduleWithContext(context1, Seconds(i), &PacketQueue::workQueue, mainQ.get());
-
+	// Simulator::ScheduleWithContext(context1, Seconds(1), &PacketQueue::start_queue, mainQ_1.get());
+	// Simulator::ScheduleWithContext(context2, Seconds(1), &PacketQueue::start_queue, mainQ_2.get());
+	// Simulator::ScheduleWithContext(context1, Seconds(1), &PacketQueue::start_queue, mainQ_1.get());
+	for (float i = 5.f; i < (runTime-endSimInterval); i+=0.001){
+		Simulator::ScheduleWithContext(context1, Seconds(i), &PacketQueue::workQueue, mainQ_1.get());
+		// Simulator::ScheduleWithContext(context2, Seconds(i+0.01), &PacketQueue::workQueue, mainQ_2.get());
 	}
-
 
 	NS_LOG_UNCOND("Loaded " + std::to_string(INN) + " I Nodes and " + std::to_string(INN*LNPIN) + " L Nodes.");
 	NS_LOG_UNCOND("Simulation runns for " + std::to_string(runTime / 60) + " Minutes");
@@ -230,16 +230,15 @@ int main (int argc, char *argv[])
 
 
 	for (auto n : allNodes){
+		n->killNode("Natural");
 		NS_LOG_UNCOND(n->returnStatusReport());
 	}
-
+	es->close();
 	NS_LOG_UNCOND("Clearing Vector allNodes");
 	allNodes.clear();
-	es->close();
+	NS_LOG_UNCOND("Finish Clearing Vector");
 
 	return 0;
-
-
 }
 
 
