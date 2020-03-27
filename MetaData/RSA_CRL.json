@@ -50,7 +50,7 @@
     "2": {
       "name": "Gen Key",
       "ram_strain": 2648,
-      "time": 240,
+      "time": 83996,
       "next_step": {
         "Option_1": {
           "nextStep": 3,
@@ -61,7 +61,7 @@
     "3": {
       "name": "Gen CSR",
       "ram_strain": 260,
-      "time": 248,
+      "time": 3081,
       "payload": {
         "size": 1375
       },
@@ -75,7 +75,7 @@
     "4": {
       "name": "Create Certificate",
       "ram_strain": 130,
-      "time": 120,
+      "time": 290,
       "payload": {
         "size": 4830
       },
@@ -107,7 +107,7 @@
     "2": {
       "name": "Gen Key",
       "ram_strain": 2648,
-      "time": 120,
+      "time": 40000,
       "next_step": {
         "Option_1": {
           "nextStep": 3,
