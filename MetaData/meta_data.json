@@ -1,0 +1,32 @@
+{
+  "GLOBAL": {
+    "validate_lower": 30000,
+    "validate_upper": 90000,
+    "revoke_lower": 60000,
+    "revoke_upper": 120000
+  },
+  "R_NODE": {
+    "max_thread": 8,
+    "max_storage": 9000000,
+    "max_ram": 10000,
+    "max_tries": 1,
+    "wtask_seed_lower": 1,
+    "wtask_seed_upper": 2
+  },
+  "I_NODE": {
+    "max_thread": 4,
+    "max_storage": 2621440,
+    "max_ram": 655360,
+    "max_tries": 20,
+    "wtask_seed_lower": 50000,
+    "wtask_seed_upper": 80000
+  },
+  "L_NODE": {
+    "max_thread": 1,
+    "max_storage": 1310720,
+    "max_ram": 327680,
+    "max_tries": 20,
+    "wtask_seed_lower": 30000,
+    "wtask_seed_upper": 50000
+  }
+}

@@ -179,16 +179,16 @@ int main (int argc, char *argv[])
 
 	for (int i = 0; i < NN; i++){
 		if (i == 0){
-			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, "R_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
+			std::shared_ptr<ANode> temp(new ANode(getId(), i, R_NODE, c.Get(i), 0, mutex, jsonRead, es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
 			temp->setNumRevokedCert(init_revoked_certs);
 			allNodes.push_back(temp);
 		} else {
 			if ((i - 1) % (1+LNPIN) == 0){
 				parentIndex = i;
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, "I_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, I_NODE, c.Get(i), 0, mutex, jsonRead, es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
 				allNodes.push_back(temp);
 			} else {
-				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, "L_Node_Metadata.txt", es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
+				std::shared_ptr<ANode> temp(new ANode(getId(), i, L_NODE, c.Get(i), parentIndex, mutex, jsonRead, es, maxMs, wait_to_create_again, runTime,identitySize, reCheck));
 				allNodes.push_back(temp);
 				l_node_indicies.push_back(i);
 			}

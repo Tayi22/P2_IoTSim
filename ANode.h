@@ -145,8 +145,6 @@ private:
 	int nextId = 0;
 
 	std::shared_ptr<JsonRead> jsonRead;
-	MetaData metaData;
-	std::string metaDataPath;
 	std::shared_ptr<EventSerialize> es;
 	std::shared_ptr<Secret> secret;
 
@@ -161,6 +159,14 @@ private:
 	int num_revoked_cert;
 	bool hasCrl;
 	int run_time;
+	int max_tries;
+	int wtask_seed_lower;
+	int wtask_seed_upper;
+
+	int validate_lower;
+	int validate_upper;
+	int revoke_lower;
+	int revoke_upper;
 
 
 	long unsigned int cpu_ticks;
@@ -200,6 +206,7 @@ private:
 	}
 
 	int intRand(const int & min, const int & max){
+		if (min > max) throw "Int Rand function min is higher than max";
 	    static thread_local mt19937* generator = nullptr;
 	    if (!generator) generator = new mt19937(clock() + std::stoi(id));
 	    uniform_int_distribution<int> distribution(min, max);
@@ -257,7 +264,10 @@ private:
 	}
 
 	void setParameters(){
-		metaData = MetaData(metaDataPath);
+		MetaData metaData = MetaData();
+		metaData.init("meta_data.json");
+		metaData.load_node_data(getNodeTypeString(), max_thread, maxStorage, maxRam, max_tries, wtask_seed_lower, wtask_seed_upper);
+		metaData.load_global_data(validate_lower, validate_upper, revoke_lower, revoke_upper);
 		max_used_ram = 0;
 		if (this->nodeType == R_NODE){
 			this->secret->setSecret(true);
@@ -265,15 +275,11 @@ private:
 		} else {
 			this->secret->setSecret(false);
 		}
-
-		maxStorage = metaData.getData("MAX_STORAGE");
-		maxRam = metaData.getData("MAX_RAM");
 		ms_over_count = 0;
 		ms_under_count = 0;
 
 		cpu_ticks = 0;
 		sec_ticks = 0;
-
 	}
 
 	bool canCreatePassive(std::string cylce_id){
@@ -469,7 +475,6 @@ public:
 				int pi,
 				std::shared_ptr<std::mutex> m,
 				std::shared_ptr<JsonRead> jr,
-				std::string metaDataPath,
 				std::shared_ptr<EventSerialize> es,
 				int maxMs,
 				int wait_to_create_again,
@@ -484,7 +489,6 @@ public:
 				parentIndex(pi),
 				m(m),
 				jsonRead(jr),
-				metaDataPath(metaDataPath),
 				es(es),
 				maxMs(maxMs),
 				run_time(run_time),
@@ -503,7 +507,6 @@ public:
 				NS_LOG_INFO(toString() + " created");
 				next_wt_id = 1;
 				start_time = getUnix();
-				max_thread = metaData.getData("MAX_THREAD");
 				stepQueue = std::queue<Payload>();
 			}
 
@@ -665,11 +668,10 @@ public:
 		std::shared_ptr<ANode> aff_node = allNodes->at(affectedNodeIndex);
 		Payload pl = Payload(wt_id, cycle_id, 1, affectedNodeIndex);
 
-		int wt_retry_time = (int)metaData.getData("WTASK_WAITTIME_SEED");
-		int maxTries = metaData.getData("MAX_TRIES");
-		float retry_time = intRand(wt_retry_time, wt_retry_time*2);
 
-		WTask temp = WTask(retry_time, maxTries, pl, wt_id);
+		float retry_time = intRand(wtask_seed_lower, wtask_seed_upper);
+
+		WTask temp = WTask(retry_time, max_tries, pl, wt_id);
 		NS_LOG_UNCOND(toString() + " starting " + cycle_id);
 		wTaskMap.insert(std::pair<int, WTask>(affectedNodeIndex, temp));
 		stepQueue.push(pl);
@@ -824,8 +826,8 @@ public:
 	}
 
 	void run_node_thread(){
-		int revoke_cooldown = intRand(60, 120);
-		int validate_cooldown = intRand(30,90);
+		int revoke_cooldown = intRand(revoke_lower, revoke_upper);
+		int validate_cooldown = intRand(validate_lower, validate_upper);
 		int curr_rc;
 		int curr_vc;
 		int last_unix = getUnix();

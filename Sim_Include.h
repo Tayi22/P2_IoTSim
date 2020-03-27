@@ -71,6 +71,40 @@ struct StorageData{
 
 };
 
+struct MetaData{
+
+	json jo;
+	const char* folder = "scratch/IoTSim_Wifi/MetaData/";
+
+	void init(std::string json_file){
+		std::ifstream i(folder + json_file);
+		i >> jo;
+	}
+
+	void load_node_data(std::string node_type_string,unsigned int& max_thread, int& max_storage, int& max_ram, int& max_tries, int& wtask_seed_lower, int& wtask_seed_upper){
+		json j = jo[node_type_string];
+		max_thread = j["max_thread"];
+		max_storage = j["max_storage"];
+		max_ram = j["max_ram"];
+		max_tries = j["max_tries"];
+		wtask_seed_lower = j["wtask_seed_lower"];
+		wtask_seed_upper = j["wtask_seed_upper"];
+	}
+
+	void load_global_data(int& vl, int& vu, int& rl, int& ru){
+		json j = jo["GLOBAL"];
+		vl = j["validate_lower"];
+		vl /= 1000;
+		vu = j["validate_upper"];
+		vu /= 1000;
+		rl = j["revoke_lower"];
+		rl /= 1000;
+		ru = j["revoke_upper"];
+		ru /= 1000;
+	}
+
+};
+
 
 struct JsonRead{
 	json jo;
@@ -238,7 +272,6 @@ struct JsonRead{
 
 NS_LOG_COMPONENT_DEFINE ("StatusInfo");
 
-#include "MetaData/MetaData.h"
 #include "Payload.h"
 #include "WTask.h"
 #include "NTask.h"
